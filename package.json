@@ -1,0 +1,25 @@
+{
+  "name": "hex-casting",
+  "displayName": "Hex Casting",
+  "description": "VSCode language features for the Hex Casting mod for Minecraft.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "hexcasting",
+      "aliases": ["Hex Casting", "hexcasting"],
+      "extensions": [".hexpattern",".hexcasting"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "hexcasting",
+      "scopeName": "source.hexcasting",
+      "path": "./syntaxes/hexcasting.tmLanguage.json"
+    }]
+  }
+}
