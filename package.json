@@ -7,7 +7,8 @@
     "vscode": "^1.74.0"
   },
   "categories": [
-    "Programming Languages"
+    "Programming Languages",
+    "Snippets"
   ],
   "contributes": {
     "languages": [{
@@ -20,6 +21,10 @@
       "language": "hexcasting",
       "scopeName": "source.hexcasting",
       "path": "./syntaxes/hexcasting.tmLanguage.json"
+    }],
+    "snippets": [{
+      "language": "hexcasting",
+      "path": "./snippets.json"
     }]
   }
 }

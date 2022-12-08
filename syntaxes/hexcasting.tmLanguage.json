@@ -1,32 +1,30 @@
 {
 	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
 	"name": "Hex Casting",
+	"scopeName": "source.hexcasting",
 	"patterns": [
-		{
-			"include": "#keywords"
-		},
-		{
-			"include": "#strings"
-		}
+		{"include": "#escape"},
+		{"include": "#comments"}
 	],
 	"repository": {
-		"keywords": {
+		"escape": {
 			"patterns": [{
-				"name": "keyword.control.hexcasting",
-				"match": "\\b(if|while|for|return)\\b"
+				"name": "constant.character.escape",
+				"match": "\\b[Cc]onsideration(\\s+\\S+)?\\b"
 			}]
 		},
-		"strings": {
-			"name": "string.quoted.double.hexcasting",
-			"begin": "\"",
-			"end": "\"",
+		"comments": {
 			"patterns": [
 				{
-					"name": "constant.character.escape.hexcasting",
-					"match": "\\\\."
+					"name": "comment.line.double-slash",
+					"match": "//.*"
+				},
+				{
+					"name": "comment.block",
+					"begin": "/\\*",
+					"end": "\\*/"
 				}
 			]
 		}
-	},
-	"scopeName": "source.hexcasting"
+	}
 }
