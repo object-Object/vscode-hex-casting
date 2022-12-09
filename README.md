@@ -1,4 +1,4 @@
-# hex-casting README
+# vscode-hex-casting
 
 VSCode language features for the Hex Casting mod for Minecraft. 
 
