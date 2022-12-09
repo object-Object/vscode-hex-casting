@@ -11,7 +11,7 @@
 		"escape": {
 			"patterns": [{
 				"name": "constant.character.escape",
-				"match": "\\b[Cc]onsideration.+?(?=//|/\\*|$)"
+				"match": "\\b[Cc]onsideration.+?(?=//|/\\*|{|}|$)"
 			}]
 		},
 		"comment": {
@@ -31,7 +31,7 @@
 			"patterns": [
 				{
 					"name": "entity.name.function",
-					"match": "(?<!\\S.*)(?![Cc]onsideration)(.+?(?=Reflection|Purification|Distillation|Exaltation|Decomposition|Disintegration|Gambit|Nadir|Zenith|:)|[a-zA-Z']+)"
+					"match": "(?<!\\S.*)(?![Cc]onsideration)(.+?(?=Reflection|Purification|Distillation|Exaltation|Decomposition|Disintegration|Gambit|Nadir|Zenith|:)|[^/*\n{}]+)"
 				},
 				{
 					"name": "entity.name.function",
