@@ -5,11 +5,15 @@ const selector: vscode.DocumentSelector = {scheme: "file", language: "hexcasting
 
 const triggerCharacters = [..."abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"];
 
-const completionList: vscode.CompletionItem[] = Object.entries(registry).flatMap(
-    ([name, translation]) => [
-        {label: translation, detail: name, kind: vscode.CompletionItemKind.Function},
-        {label: translation, filterText: name, detail: name, kind: vscode.CompletionItemKind.Function},
-    ]
+const completionList: vscode.CompletionItem[] = Object.entries(registry).flatMap<vscode.CompletionItem>(
+    ([name, translation]) => {
+        const base: vscode.CompletionItem = {
+            label: translation,
+            detail: name,
+            kind: vscode.CompletionItemKind.Function,
+        };
+        return [base, {...base, filterText: name}];
+    }
 );
 
 class HexCastingCompletionItemProvider implements vscode.CompletionItemProvider {
