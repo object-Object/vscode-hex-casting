@@ -33,10 +33,9 @@ class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
         token: vscode.CancellationToken,
         context: vscode.CompletionContext,
     ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
-        const range = document.getWordRangeAtPosition(position);
-        if (range === undefined) return;
-
-        const line = document.getText(new vscode.Range(position.with({ character: 0 }), range.start));
+        const lineStart = position.with({ character: 0 });
+        const rangeStart = document.getWordRangeAtPosition(position)?.start ?? lineStart;
+        const line = document.getText(new vscode.Range(lineStart, rangeStart));
         return [...completionList, ...makeCompletionItems("escape", "Consideration", !line.includes("Consideration"))];
     }
 }

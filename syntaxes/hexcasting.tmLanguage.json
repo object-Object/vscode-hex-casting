@@ -29,7 +29,7 @@
             "patterns": [
                 {
                     "name": "entity.name.function",
-                    "match": "^\\s*(?!Consideration)\\S(.+?(?=Reflection|Purification|Distillation|Exaltation|Decomposition|Disintegration|Gambit|Nadir|Zenith|:)|[^/*\n{}]+)"
+                    "match": "^\\s*(?!Consideration)\\S(.+?(?=Reflection|Purification|Distillation|Exaltation|Decomposition|Disintegration|Gambit|Nadir|Zenith|Dstl\\.|:)|[^/*\n{}]+)"
                 },
                 {
                     "name": "entity.name.function",
@@ -49,7 +49,7 @@
                 },
                 {
                     "name": "support.type",
-                    "match": "Reflection|Purification|Distillation|Exaltation|Decomposition|Disintegration|Gambit|Nadir|Zenith"
+                    "match": "Reflection|Purification|Distillation|Exaltation|Decomposition|Disintegration|Gambit|Nadir|Zenith|Dstl\\."
                 },
                 {
                     "name": "keyword",

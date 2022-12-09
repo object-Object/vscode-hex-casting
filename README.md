@@ -24,12 +24,6 @@ None at this time.
 
 Probably lots of things. This is my first extension, and as such, I'm sure there are many things I've unknowingly done wrong. Please report any issues you may find using the [issue tracker](https://github.com/object-Object/vscode-hex-casting/issues).
 
-## Release Notes
-
-### 0.0.1
-
-Initial release.
-
 ## Development
 
 `src/data/registry.json` is generated using [this script in HexBug](https://github.com/object-Object/HexBug/blob/main/generate_pattern_json.py).

@@ -30,6 +30,7 @@ Summon Rain
 Summon Cyclic Wisp
 B
 BB: B
+Multiplicative Dstl.
 {
     // line comment
     /*
@@ -63,4 +64,5 @@ BB: B
     Summon Cyclic Wisp
     B
     BB: B
+    Multiplicative Dstl.
 }
