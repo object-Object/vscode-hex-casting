@@ -8,12 +8,14 @@ const selector: vscode.DocumentSelector = {scheme: "file", language: "hexcasting
 const completionList: vscode.CompletionItem[] = Object.entries(registry).flatMap<vscode.CompletionItem>(
     ([name, translation]) => {
         const base: vscode.CompletionItem = {
-            label: translation,
-            detail: name,
+            label: {
+                label: translation,
+                description: name,
+            },
             kind: vscode.CompletionItemKind.Function,
-            insertText: ["mask", "number"].includes(name) ? translation + ": " : undefined,
+            insertText: ["mask", "number"].includes(name) ? translation + ": " : translation,
         };
-        return [base, {...base, filterText: name}];
+        return [base, {...base, filterText: name, sortText: "~" + translation}];
     }
 );
 
@@ -72,7 +74,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.languages.registerCompletionItemProvider(
         selector,
         new PatternCompletionItemProvider(),
-        ..."abcdefghijklmnopqrstuvwxyz",
+        ..."abcdefghijklmnopqrstuvwxyz\\", // \ is just so the consideration snippet will trigger
     );
 
     vscode.languages.registerCompletionItemProvider(

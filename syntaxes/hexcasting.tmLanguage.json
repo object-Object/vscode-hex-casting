@@ -35,11 +35,11 @@
 				},
 				{
 					"name": "entity.name.function",
-					"match": "II"
+					"match": "\\bII\\b"
 				},
 				{
 					"name": "variable.parameter",
-					"match": "(?<=:\\s+)\\S+"
+					"match": "(?<=:.*)\\S+"
 				},
 				{
 					"name": "variable.parameter",
