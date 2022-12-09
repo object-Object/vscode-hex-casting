@@ -6,7 +6,7 @@
     "author": "object-Object",
     "publisher": "object-Object",
     "license": "MIT",
-    "icon": "images/extension_icon.jpeg",
+    "icon": "images/extension_icon.png",
     "bugs": {
         "url": "https://github.com/object-Object/vscode-hex-casting/issues"
     },
@@ -22,7 +22,8 @@
         "Snippets"
     ],
     "keywords": [
-        "Hex Casting"
+        "Hex Casting",
+        "Minecraft"
     ],
     "main": "./out/extension.js",
     "activationEvents": [
