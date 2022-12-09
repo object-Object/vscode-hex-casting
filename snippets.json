@@ -6,13 +6,5 @@
             "$0",
             "*/"
         ]
-    },
-    "Bookkeeper's Gambit": {
-        "prefix": ["mask", "bookkeeper"],
-        "body": ["Bookkeeper's Gambit: $0"]
-    },
-    "Numerical Reflection": {
-        "prefix": "number",
-        "body": ["Numerical Reflection: $0"]
     }
 }

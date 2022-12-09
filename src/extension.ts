@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import registry from "./data/registry.json";
 
-const selector: vscode.DocumentSelector = {scheme: "file", language: "hexcasting"};
+const output = vscode.window.createOutputChannel("Hex Casting");
 
-const triggerCharacters = [..."abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"];
+const selector: vscode.DocumentSelector = {scheme: "file", language: "hexcasting"};
 
 const completionList: vscode.CompletionItem[] = Object.entries(registry).flatMap<vscode.CompletionItem>(
     ([name, translation]) => {
@@ -11,12 +11,13 @@ const completionList: vscode.CompletionItem[] = Object.entries(registry).flatMap
             label: translation,
             detail: name,
             kind: vscode.CompletionItemKind.Function,
+            insertText: ["mask", "number"].includes(name) ? translation + ": " : undefined,
         };
         return [base, {...base, filterText: name}];
     }
 );
 
-class HexCastingCompletionItemProvider implements vscode.CompletionItemProvider {
+class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
     public provideCompletionItems(
         document: vscode.TextDocument,
         position: vscode.Position,
@@ -27,14 +28,63 @@ class HexCastingCompletionItemProvider implements vscode.CompletionItemProvider 
     }
 }
 
+class NumberCompletionItemProvider implements vscode.CompletionItemProvider {
+    public provideCompletionItems(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        token: vscode.CancellationToken,
+        context: vscode.CompletionContext,
+    ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
+        const range = document.getWordRangeAtPosition(position, /-?\d+/);
+        if (range === undefined) return;
+
+        const text = document.getText(range);
+        return [{
+            label: `Numerical Reflection: ${text}`,
+            range,
+            preselect: true,
+            filterText: text,
+        }];
+    }
+}
+
+class BookkeeperCompletionItemProvider implements vscode.CompletionItemProvider {
+    public provideCompletionItems(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        token: vscode.CancellationToken,
+        context: vscode.CompletionContext,
+    ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
+        const range = document.getWordRangeAtPosition(position, /[v\-]+/);
+        if (range === undefined) return;
+
+        const text = document.getText(range);
+        return [{
+            label: `Bookkeeper's Gambit: ${text}`,
+            range,
+            preselect: true,
+            filterText: text,
+        }];
+    }
+}
+
 export function activate(context: vscode.ExtensionContext) {
-    const output = vscode.window.createOutputChannel("Hex Casting");
-    output.appendLine(triggerCharacters.toString());
+    vscode.languages.registerCompletionItemProvider(
+        selector,
+        new PatternCompletionItemProvider(),
+        ..."abcdefghijklmnopqrstuvwxyz",
+    );
 
     vscode.languages.registerCompletionItemProvider(
         selector,
-        new HexCastingCompletionItemProvider(),
-        ...triggerCharacters,
+        new NumberCompletionItemProvider(),
+        ..."-0123456789"
+    );
+
+    vscode.languages.registerCompletionItemProvider(
+        selector,
+        new BookkeeperCompletionItemProvider(),
+        ..."v-"
     );
 }
 

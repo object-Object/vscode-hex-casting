@@ -29,21 +29,54 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deactivate = exports.activate = void 0;
 const vscode = __importStar(require("vscode"));
 const registry_json_1 = __importDefault(require("./data/registry.json"));
+const output = vscode.window.createOutputChannel("Hex Casting");
 const selector = { scheme: "file", language: "hexcasting" };
-const triggerCharacters = [..."abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"];
-const completionList = Object.entries(registry_json_1.default).flatMap(([name, translation]) => [
-    { label: translation, detail: name, kind: vscode.CompletionItemKind.Function },
-    { label: translation, filterText: name, detail: name, kind: vscode.CompletionItemKind.Function },
-]);
-class HexCastingCompletionItemProvider {
+const completionList = Object.entries(registry_json_1.default).flatMap(([name, translation]) => {
+    const base = {
+        label: translation,
+        detail: name,
+        kind: vscode.CompletionItemKind.Function,
+        insertText: ["mask", "number"].includes(name) ? translation + ": " : undefined,
+    };
+    return [base, { ...base, filterText: name }];
+});
+class PatternCompletionItemProvider {
     provideCompletionItems(document, position, token, context) {
         return completionList;
     }
 }
+class NumberCompletionItemProvider {
+    provideCompletionItems(document, position, token, context) {
+        const range = document.getWordRangeAtPosition(position, /-?\d+/);
+        if (range === undefined)
+            return;
+        const text = document.getText(range);
+        return [{
+                label: `Numerical Reflection: ${text}`,
+                range,
+                preselect: true,
+                filterText: text,
+            }];
+    }
+}
+class BookkeeperCompletionItemProvider {
+    provideCompletionItems(document, position, token, context) {
+        const range = document.getWordRangeAtPosition(position, /[v\-]+/);
+        if (range === undefined)
+            return;
+        const text = document.getText(range);
+        return [{
+                label: `Bookkeeper's Gambit: ${text}`,
+                range,
+                preselect: true,
+                filterText: text,
+            }];
+    }
+}
 function activate(context) {
-    const output = vscode.window.createOutputChannel("Hex Casting");
-    output.appendLine(triggerCharacters.toString());
-    vscode.languages.registerCompletionItemProvider(selector, new HexCastingCompletionItemProvider(), ...triggerCharacters);
+    vscode.languages.registerCompletionItemProvider(selector, new PatternCompletionItemProvider(), ..."abcdefghijklmnopqrstuvwxyz");
+    vscode.languages.registerCompletionItemProvider(selector, new NumberCompletionItemProvider(), ..."-0123456789");
+    vscode.languages.registerCompletionItemProvider(selector, new BookkeeperCompletionItemProvider(), ..."v-");
 }
 exports.activate = activate;
 function deactivate() { }
