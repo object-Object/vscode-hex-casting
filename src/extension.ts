@@ -3,21 +3,28 @@ import registry from "./data/registry.json";
 
 const output = vscode.window.createOutputChannel("Hex Casting");
 
-const selector: vscode.DocumentSelector = {scheme: "file", language: "hexcasting"};
+const selector: vscode.DocumentSelector = [
+    { scheme: "file", language: "hexcasting" },
+    { scheme: "untitled", language: "hexcasting" },
+];
 
-const completionList: vscode.CompletionItem[] = Object.entries(registry).flatMap<vscode.CompletionItem>(
-    ([name, translation]) => {
-        const base: vscode.CompletionItem = {
-            label: {
-                label: translation,
-                description: name,
-            },
-            kind: vscode.CompletionItemKind.Function,
-            insertText: ["mask", "number"].includes(name) ? translation + ": " : translation,
-        };
-        return [base, {...base, filterText: name, sortText: "~" + translation}];
-    }
-);
+function makeCompletionItems(name: string, translation: string, hasParam: boolean): vscode.CompletionItem[] {
+    const base: vscode.CompletionItem = {
+        label: {
+            label: translation,
+            description: name,
+        },
+        kind: vscode.CompletionItemKind.Function,
+        insertText: translation + (hasParam ? ": " : "\n"),
+    };
+    return [base, { ...base, filterText: name, sortText: "~" + translation }];
+}
+
+const completionList: vscode.CompletionItem[] = Object.entries(registry)
+    .filter(([name]) => name != "escape")
+    .flatMap<vscode.CompletionItem>(([name, translation]) =>
+        makeCompletionItems(name, translation, ["mask", "number"].includes(name)),
+    );
 
 class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
     public provideCompletionItems(
@@ -26,47 +33,37 @@ class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
         token: vscode.CancellationToken,
         context: vscode.CompletionContext,
     ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
-        return completionList;
+        const range = document.getWordRangeAtPosition(position);
+        if (range === undefined) return;
+
+        const line = document.getText(new vscode.Range(position.with({ character: 0 }), range.start));
+        return [...completionList, ...makeCompletionItems("escape", "Consideration", !line.includes("Consideration"))];
     }
 }
 
-class NumberCompletionItemProvider implements vscode.CompletionItemProvider {
+class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
+    constructor(public translation: string, public regex: RegExp) {}
+
     public provideCompletionItems(
         document: vscode.TextDocument,
         position: vscode.Position,
         token: vscode.CancellationToken,
         context: vscode.CompletionContext,
     ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
-        const range = document.getWordRangeAtPosition(position, /-?\d+/);
+        const range = document.getWordRangeAtPosition(position, this.regex);
         if (range === undefined) return;
 
         const text = document.getText(range);
-        return [{
-            label: `Numerical Reflection: ${text}`,
-            range,
-            preselect: true,
-            filterText: text,
-        }];
-    }
-}
-
-class BookkeeperCompletionItemProvider implements vscode.CompletionItemProvider {
-    public provideCompletionItems(
-        document: vscode.TextDocument,
-        position: vscode.Position,
-        token: vscode.CancellationToken,
-        context: vscode.CompletionContext,
-    ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
-        const range = document.getWordRangeAtPosition(position, /[v\-]+/);
-        if (range === undefined) return;
-
-        const text = document.getText(range);
-        return [{
-            label: `Bookkeeper's Gambit: ${text}`,
-            range,
-            preselect: true,
-            filterText: text,
-        }];
+        const label = `${this.translation}: ${text}`;
+        return [
+            {
+                label,
+                range,
+                preselect: true,
+                filterText: text,
+                insertText: label + "\n",
+            },
+        ];
     }
 }
 
@@ -79,14 +76,14 @@ export function activate(context: vscode.ExtensionContext) {
 
     vscode.languages.registerCompletionItemProvider(
         selector,
-        new NumberCompletionItemProvider(),
-        ..."-0123456789"
+        new SpecialCompletionItemProvider("Numerical Reflection", /-?\d+/),
+        ..."-0123456789",
     );
 
     vscode.languages.registerCompletionItemProvider(
         selector,
-        new BookkeeperCompletionItemProvider(),
-        ..."v-"
+        new SpecialCompletionItemProvider("Bookkeeper's Gambit", /[v\-]+/),
+        ..."v-",
     );
 }
 

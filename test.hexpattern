@@ -2,14 +2,15 @@
 /*
 block comment
 */
-Consideration //
-Consideration /**/
-Consideration Mind's Reflection
-Consideration Zone Distillation: Animal
+Consideration: //
+Consideration: /**/
+Consideration: Mind's Reflection
+Consideration: Zone Distillation: Animal
 Consideration
-Consideration Consideration
-Consideration {
-Consideration }
+Consideration: Consideration
+Consideration: {
+Consideration: }
+Numerical Reflection: 12 // test
 Introspection
 Mind's Reflection
 Abacus Purification
@@ -27,19 +28,22 @@ Vector Reflection Zero
 Zero Distillation
 Summon Rain
 Summon Cyclic Wisp
+B
+BB: B
 {
     // line comment
     /*
     block comment
     */
-    Consideration //
-    Consideration /**/
-    Consideration Mind's Reflection
-    Consideration Zone Distillation: Animal
+    Consideration: //
+    Consideration: /**/
+    Consideration: Mind's Reflection
+    Consideration: Zone Distillation: Animal
     Consideration
-    Consideration Consideration
-    Consideration {
-    Consideration }
+    Consideration: Consideration
+    Consideration: {
+    Consideration: }
+    Numerical Reflection: 12 // test
     Introspection
     Mind's Reflection
     Abacus Purification
@@ -57,4 +61,6 @@ Summon Cyclic Wisp
     Zero Distillation
     Summon Rain
     Summon Cyclic Wisp
+    B
+    BB: B
 }

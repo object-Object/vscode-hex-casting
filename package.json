@@ -1,55 +1,85 @@
 {
-  "name": "hex-casting",
-  "displayName": "Hex Casting",
-  "description": "VSCode language features for the Hex Casting mod for Minecraft.",
-  "version": "0.0.1",
-  "engines": {
-    "vscode": "^1.74.0"
-  },
-  "categories": [
-    "Programming Languages",
-    "Snippets"
-  ],
-  "main": "./out/extension.js",
-  "activationEvents": [
-    "onLanguage:hexcasting"
-  ],
-  "contributes": {
-    "languages": [{
-      "id": "hexcasting",
-      "aliases": ["Hex Casting", "hexcasting"],
-      "extensions": [".hexpattern",".hexcasting"],
-      "configuration": "./language-configuration.json"
-    }],
-    "grammars": [{
-      "language": "hexcasting",
-      "scopeName": "source.hexcasting",
-      "path": "./syntaxes/hexcasting.tmLanguage.json"
-    }],
-    "snippets": [{
-      "language": "hexcasting",
-      "path": "./snippets.json"
-    }]
-  },
-  "scripts": {
-    "vscode:prepublish": "yarn run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "yarn run compile && yarn run lint",
-    "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
-  },
-  "devDependencies": {
-    "@types/vscode": "^1.74.0",
-    "@types/glob": "^8.0.0",
-    "@types/mocha": "^10.0.1",
-    "@types/node": "16.x",
-    "@typescript-eslint/eslint-plugin": "^5.45.0",
-    "@typescript-eslint/parser": "^5.45.0",
-    "eslint": "^8.28.0",
-    "glob": "^8.0.3",
-    "mocha": "^10.1.0",
-    "typescript": "^4.9.3",
-    "@vscode/test-electron": "^2.2.0"
-  }
+    "version": "0.0.1",
+    "name": "hex-casting",
+    "displayName": "Hex Casting",
+    "description": "VSCode language features for the Hex Casting mod for Minecraft.",
+    "author": "object-Object",
+    "publisher": "object-Object",
+    "license": "MIT",
+    "icon": "images/extension_icon.jpeg",
+    "bugs": {
+        "url": "https://github.com/object-Object/vscode-hex-casting/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/object-Object/vscode-hex-casting"
+    },
+    "engines": {
+        "vscode": "^1.74.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Snippets"
+    ],
+    "keywords": [
+        "Hex Casting"
+    ],
+    "main": "./out/extension.js",
+    "activationEvents": [
+        "onLanguage:hexcasting"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "hexcasting",
+                "aliases": [
+                    "Hex Casting",
+                    "hexcasting"
+                ],
+                "extensions": [
+                    ".hexpattern",
+                    ".hexcasting"
+                ],
+                "configuration": "./language-configuration.json",
+                "icon": {
+                    "light": "images/language_icon.png",
+                    "dark": "images/language_icon.png"
+                }
+            }
+        ],
+        "grammars": [
+            {
+                "language": "hexcasting",
+                "scopeName": "source.hexcasting",
+                "path": "./syntaxes/hexcasting.tmLanguage.json"
+            }
+        ],
+        "snippets": [
+            {
+                "language": "hexcasting",
+                "path": "./snippets.json"
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "yarn run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "yarn run compile && yarn run lint",
+        "lint": "eslint src --ext ts",
+        "test": "node ./out/test/runTest.js"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.74.0",
+        "@types/glob": "^8.0.0",
+        "@types/mocha": "^10.0.1",
+        "@types/node": "16.x",
+        "@typescript-eslint/eslint-plugin": "^5.45.0",
+        "@typescript-eslint/parser": "^5.45.0",
+        "eslint": "^8.28.0",
+        "glob": "^8.0.3",
+        "mocha": "^10.1.0",
+        "typescript": "^4.9.3",
+        "@vscode/test-electron": "^2.2.0"
+    }
 }

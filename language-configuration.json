@@ -12,5 +12,16 @@
     "autoClosingPairs": [
         ["{", "}"],
         ["/*", "*/"]
+    ],
+    "onEnterRules": [
+        {
+            "beforeText": "/\\*",
+            "afterText": "\\*/",
+            "action": {
+                "indent": "indentOutdent",
+                // this SHOULD just not append anything, including indentation
+                "appendText": "\r"
+            }
+        }
     ]
 }

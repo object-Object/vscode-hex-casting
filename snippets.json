@@ -1,14 +1,14 @@
 {
-    "Block Comment": {
-        "prefix": "/*",
-        "body": [
-            "/*",
-            "$0",
-            "*/"
-        ]
-    },
     "Consideration": {
         "prefix": "\\",
-        "body": ["Consideration "]
+        "body": ["Consideration: "]
+    },
+    "Considered Consideration": {
+        "prefix": "\\\\",
+        "body": ["Consideration: Consideration\n"]
+    },
+    "Considered Intro/Retro": {
+        "prefix": "\\{}",
+        "body": ["Consideration: {", "\t$0", "Consideration: }"]
     }
 }
