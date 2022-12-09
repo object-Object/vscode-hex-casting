@@ -3,17 +3,18 @@
 	"name": "Hex Casting",
 	"scopeName": "source.hexcasting",
 	"patterns": [
+		{"include": "#pattern"},
 		{"include": "#escape"},
-		{"include": "#comments"}
+		{"include": "#comment"}
 	],
 	"repository": {
 		"escape": {
 			"patterns": [{
 				"name": "constant.character.escape",
-				"match": "\\b[Cc]onsideration(\\s+\\S+)?\\b"
+				"match": "\\b[Cc]onsideration.+?(?=//|/\\*|$)"
 			}]
 		},
-		"comments": {
+		"comment": {
 			"patterns": [
 				{
 					"name": "comment.line.double-slash",
@@ -23,6 +24,34 @@
 					"name": "comment.block",
 					"begin": "/\\*",
 					"end": "\\*/"
+				}
+			]
+		},
+		"pattern": {
+			"patterns": [
+				{
+					"name": "entity.name.function",
+					"match": "(?<!\\S.*)(?![Cc]onsideration)(.+?(?=Reflection|Purification|Distillation|Exaltation|Decomposition|Disintegration|Gambit|Nadir|Zenith|:)|[a-zA-Z']+)"
+				},
+				{
+					"name": "entity.name.function",
+					"match": "II"
+				},
+				{
+					"name": "variable.parameter",
+					"match": "(?<=:\\s+)\\S+"
+				},
+				{
+					"name": "variable.parameter",
+					"match": "(?<=Vector\\s+Reflection\\s+)([+-][XYZ]|Zero)"
+				},
+				{
+					"name": "support.type",
+					"match": "Reflection|Purification|Distillation|Exaltation|Decomposition|Disintegration|Gambit|Nadir|Zenith"
+				},
+				{
+					"name": "keyword",
+					"match": ":"
 				}
 			]
 		}
