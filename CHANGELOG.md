@@ -2,11 +2,16 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
-## [unreleased]
+## [0.0.5] - 2022-12-10
 
 ### Additions
 
 - Add `appendNewline` configuration option
+- Add pattern name, mod name, args, image, and angle signature to completion list and hover text
+
+### Fixes
+
+- Fix `:` causing issues in comments
 
 ## [0.0.4] - 2022-12-09
 

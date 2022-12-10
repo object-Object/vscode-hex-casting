@@ -1,5 +1,15 @@
 import * as vscode from "vscode";
-import registry from "./data/registry.json";
+import untypedRegistry from "./data/registry.json";
+
+interface PatternInfo {
+    name: string;
+    modName: string;
+    filename: string | null;
+    direction: string | null;
+    pattern: string | null;
+    args: string | null;
+    url: string | null;
+}
 
 const rootSection = "hex-casting";
 
@@ -11,23 +21,63 @@ const selector: vscode.DocumentSelector = [
     { scheme: "untitled", language: "hexcasting" },
 ];
 
-function makeCompletionItems(name: string, translation: string, hasParam: boolean): vscode.CompletionItem[] {
-    const base: vscode.CompletionItem = {
+const registry: { [translation: string]: PatternInfo } = untypedRegistry;
+
+function makeDocumentation(
+    translation: string,
+    { modName, filename, direction, pattern, url }: PatternInfo,
+    imageWidth: number,
+): vscode.MarkdownString {
+    let result = new vscode.MarkdownString(
+        url != null ? `**[${translation}](${url})**` : `**${translation}**`,
+    ).appendMarkdown(` (${modName})`);
+
+    // this feels sketchy. is there a better way to do this?
+    result.baseUri = vscode.Uri.file(__dirname.replace(/out$/, "") + "images/patterns/");
+    result.supportHtml = true;
+
+    if (filename != null)
+        result = result.appendMarkdown(
+            `\n\n<img src="${filename}" alt="Stroke order for ${translation}" width="${imageWidth}"/>`,
+        );
+    if (direction != null && pattern != null) result = result.appendMarkdown(`\n\n\`${direction} ${pattern}\``);
+
+    return result;
+}
+
+function makeCompletionItem(translation: string, hasParam: boolean, patternInfo?: PatternInfo): vscode.CompletionItem {
+    patternInfo = patternInfo ?? registry[translation];
+    const { name, args } = patternInfo;
+
+    return {
         label: {
             label: translation,
             description: name,
         },
+        detail: args ?? undefined,
+        documentation: makeDocumentation(translation, patternInfo, 300),
         kind: vscode.CompletionItemKind.Function,
         insertText: translation + (hasParam ? ": " : appendNewline ? "\n" : ""),
     };
+}
+
+function makeCompletionItems(
+    translation: string,
+    hasParam: boolean,
+    patternInfo?: PatternInfo,
+): vscode.CompletionItem[] {
+    patternInfo = patternInfo ?? registry[translation];
+    const { name } = patternInfo;
+
+    const base = makeCompletionItem(translation, hasParam, patternInfo);
     return [base, { ...base, filterText: name, sortText: "~" + translation }];
 }
 
 function makeCompletionList(): vscode.CompletionItem[] {
     return Object.entries(registry)
         .filter(([name]) => name != "escape")
-        .flatMap<vscode.CompletionItem>(([name, translation]) =>
-            makeCompletionItems(name, translation, ["mask", "number"].includes(name)),
+        .flatMap<vscode.CompletionItem>(([translation, patternInfo]) =>
+            makeCompletionItems(translation, ["mask", "number"].includes(patternInfo.name), patternInfo),
         );
 }
 
@@ -49,7 +99,7 @@ class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
         const line = document.getText(new vscode.Range(lineStart, rangeStart));
         if (shouldSkipCompletions(line)) return;
 
-        return [...completionList, ...makeCompletionItems("escape", "Consideration", !line.includes("Consideration:"))];
+        return [...completionList, ...makeCompletionItems("Consideration", !line.includes("Consideration:"))];
     }
 }
 
@@ -71,9 +121,12 @@ class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
 
         const text = document.getText(range);
         const label = `${this.translation}: ${text}`;
+        const patternInfo = registry[this.translation];
+
         return [
             {
-                label,
+                ...makeCompletionItem(label, false, patternInfo),
+                kind: undefined,
                 range,
                 preselect: true,
                 filterText: text,
@@ -83,26 +136,51 @@ class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
     }
 }
 
+class PatternHoverProvider implements vscode.HoverProvider {
+    public provideHover(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        token: vscode.CancellationToken,
+    ): vscode.ProviderResult<vscode.Hover> {
+        const range = document.getWordRangeAtPosition(position);
+        if (range === undefined) return;
+
+        const translation = document
+            .getText(range)
+            .replace(/(?<=Bookkeeper's Gambit):\s*[v-]+|(?<=Numerical Reflection):\s*-?[0-9]+/, "")
+            .trim();
+        if (!(translation in registry)) return;
+
+        const patternInfo = registry[translation];
+        const { args } = patternInfo;
+
+        return {
+            contents: [
+                ...(args ? [new vscode.MarkdownString(args)] : []),
+                makeDocumentation(translation, patternInfo, 200),
+            ],
+        };
+    }
+}
+
 export function activate(context: vscode.ExtensionContext) {
-    vscode.languages.registerCompletionItemProvider(
-        selector,
-        new PatternCompletionItemProvider(),
-        ..."abcdefghijklmnopqrstuvwxyz0123456789\\", // \ is just so the consideration snippet will trigger
-    );
-
-    vscode.languages.registerCompletionItemProvider(
-        selector,
-        new SpecialCompletionItemProvider("Numerical Reflection", /-?\d+/),
-        ..."-0123456789",
-    );
-
-    vscode.languages.registerCompletionItemProvider(
-        selector,
-        new SpecialCompletionItemProvider("Bookkeeper's Gambit", /[v\-]+/),
-        ..."v-",
-    );
-
     context.subscriptions.push(
+        vscode.languages.registerCompletionItemProvider(
+            selector,
+            new PatternCompletionItemProvider(),
+            ..."abcdefghijklmnopqrstuvwxyz0123456789\\", // \ is just so the consideration snippet will trigger
+        ),
+        vscode.languages.registerCompletionItemProvider(
+            selector,
+            new SpecialCompletionItemProvider("Numerical Reflection", /-?\d+/),
+            ..."-0123456789",
+        ),
+        vscode.languages.registerCompletionItemProvider(
+            selector,
+            new SpecialCompletionItemProvider("Bookkeeper's Gambit", /[v\-]+/),
+            ..."v-",
+        ),
+        vscode.languages.registerHoverProvider(selector, new PatternHoverProvider()),
         vscode.workspace.onDidChangeConfiguration((e) => {
             if (e.affectsConfiguration("hex-casting.appendNewline")) {
                 appendNewline = vscode.workspace.getConfiguration(rootSection).get<boolean>("appendNewline")!;
