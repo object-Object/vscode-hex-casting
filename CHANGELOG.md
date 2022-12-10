@@ -2,6 +2,12 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [unreleased]
+
+### Additions
+
+- Add `appendNewline` configuration option
+
 ## [0.0.4] - 2022-12-09
 
 ### Fixes

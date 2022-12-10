@@ -1,7 +1,10 @@
 import * as vscode from "vscode";
 import registry from "./data/registry.json";
 
+const rootSection = "hex-casting";
+
 const output = vscode.window.createOutputChannel("Hex Casting");
+let appendNewline = vscode.workspace.getConfiguration(rootSection).get<boolean>("appendNewline")!;
 
 const selector: vscode.DocumentSelector = [
     { scheme: "file", language: "hexcasting" },
@@ -15,20 +18,24 @@ function makeCompletionItems(name: string, translation: string, hasParam: boolea
             description: name,
         },
         kind: vscode.CompletionItemKind.Function,
-        insertText: translation + (hasParam ? ": " : "\n"),
+        insertText: translation + (hasParam ? ": " : appendNewline ? "\n" : ""),
     };
     return [base, { ...base, filterText: name, sortText: "~" + translation }];
 }
 
+function makeCompletionList(): vscode.CompletionItem[] {
+    return Object.entries(registry)
+        .filter(([name]) => name != "escape")
+        .flatMap<vscode.CompletionItem>(([name, translation]) =>
+            makeCompletionItems(name, translation, ["mask", "number"].includes(name)),
+        );
+}
+
+let completionList: vscode.CompletionItem[] = makeCompletionList();
+
 function shouldSkipCompletions(line: string): boolean {
     return /\S\s/.test(line.replace("Consideration:", ""));
 }
-
-const completionList: vscode.CompletionItem[] = Object.entries(registry)
-    .filter(([name]) => name != "escape")
-    .flatMap<vscode.CompletionItem>(([name, translation]) =>
-        makeCompletionItems(name, translation, ["mask", "number"].includes(name)),
-    );
 
 class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
     public provideCompletionItems(
@@ -70,7 +77,7 @@ class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
                 range,
                 preselect: true,
                 filterText: text,
-                insertText: label + "\n",
+                insertText: label + (appendNewline ? "\n" : ""),
             },
         ];
     }
@@ -93,6 +100,15 @@ export function activate(context: vscode.ExtensionContext) {
         selector,
         new SpecialCompletionItemProvider("Bookkeeper's Gambit", /[v\-]+/),
         ..."v-",
+    );
+
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeConfiguration((e) => {
+            if (e.affectsConfiguration("hex-casting.appendNewline")) {
+                appendNewline = vscode.workspace.getConfiguration(rootSection).get<boolean>("appendNewline")!;
+                completionList = makeCompletionList();
+            }
+        }),
     );
 }
 

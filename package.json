@@ -60,6 +60,18 @@
                 "language": "hexcasting",
                 "path": "./snippets.json"
             }
+        ],
+        "configuration": [
+            {
+                "title": "Hex Casting",
+                "properties": {
+                    "hex-casting.appendNewline": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Go to the next line after selecting a pattern from the completion list."
+                    }
+                }
+            }
         ]
     },
     "scripts": {
