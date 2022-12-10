@@ -2,9 +2,15 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.0.4] - 2022-12-09
+
+### Fixes
+
+- Add / to the characters that can be in a word, so `read/local` now completes properly
+
 ## [0.0.3] - 2022-12-09
 
-### Changed
+### Changes
 
 - Stop completions from being shown when editing the parameter of a number or bookkeeper
 - Tweak what's considered a "word", so completion now works after spaces in a pattern name as well
@@ -12,7 +18,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 
 ## [0.0.2] - 2022-12-09
 
-### Fixed
+### Fixes
 
 - Fix completions not being provided for an empty line
 - Fix `Dstl.` not being highlighted as a type
