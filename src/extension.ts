@@ -40,7 +40,6 @@ class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
         const lineStart = position.with({ character: 0 });
         const rangeStart = document.getWordRangeAtPosition(position)?.start ?? position;
         const line = document.getText(new vscode.Range(lineStart, rangeStart));
-        output.appendLine(rangeStart.character.toString());
         if (shouldSkipCompletions(line)) return;
 
         return [...completionList, ...makeCompletionItems("escape", "Consideration", !line.includes("Consideration:"))];
