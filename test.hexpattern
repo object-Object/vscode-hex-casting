@@ -31,9 +31,18 @@ Summon Rain
 Summon Cyclic Wisp
 B
 BB: B
-Multiplicative Dstl. // //
+Multiplicative Dstl. // // TODO: stuff
 read/local
 test//l
+// // //
+read/
+/read
+/*:*/
+/*:
+:
+:*/
+// :
+: //
 {
     // line comment
     /*
@@ -71,7 +80,16 @@ test//l
     Multiplicative Dstl. // //
     read/local
     test//l
+    // // //
+    read/
+    /read
+    :/*:*/
+    /*:
+    :
+    :*/
+    : /*
+    
+    */:
+    // :
+    : //
 }
-// // //
-read/
-/read

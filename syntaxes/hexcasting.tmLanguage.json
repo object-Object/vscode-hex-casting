@@ -29,7 +29,7 @@
             "patterns": [
                 {
                     "name": "entity.name.function",
-                    "match": "^\\s*(?!Consideration)\\S(.+?(?=Reflection|Purification|Distillation|Exaltation|Decomposition|Disintegration|Gambit|Nadir|Zenith|Dstl\\.|:)|[^/*\n{}]+)"
+                    "match": "^\\s*(?!Consideration|//|/\\*)[a-zA-Z0-9+\\-\\./][a-zA-Z0-9:'+\\-\\./ ]*?(?=Reflection|Purification|Distillation|Exaltation|Decomposition|Disintegration|Gambit|Nadir|Zenith|Dstl\\.|:|//|/\\*|$)"
                 },
                 {
                     "name": "entity.name.function",
@@ -53,7 +53,7 @@
                 },
                 {
                     "name": "keyword",
-                    "match": ":"
+                    "match": "(?<!(?:/\\*|//).*):"
                 }
             ]
         }
