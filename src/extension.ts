@@ -43,10 +43,7 @@ class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
         output.appendLine(rangeStart.character.toString());
         if (shouldSkipCompletions(line)) return;
 
-        return [
-            ...completionList,
-            ...makeCompletionItems("escape", "Consideration:", !line.includes("Consideration:")),
-        ];
+        return [...completionList, ...makeCompletionItems("escape", "Consideration", !line.includes("Consideration:"))];
     }
 }
 
