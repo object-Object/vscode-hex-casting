@@ -20,6 +20,10 @@ function makeCompletionItems(name: string, translation: string, hasParam: boolea
     return [base, { ...base, filterText: name, sortText: "~" + translation }];
 }
 
+function shouldSkipCompletions(line: string): boolean {
+    return /\S\s/.test(line.replace("Consideration:", ""));
+}
+
 const completionList: vscode.CompletionItem[] = Object.entries(registry)
     .filter(([name]) => name != "escape")
     .flatMap<vscode.CompletionItem>(([name, translation]) =>
@@ -34,9 +38,15 @@ class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
         context: vscode.CompletionContext,
     ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
         const lineStart = position.with({ character: 0 });
-        const rangeStart = document.getWordRangeAtPosition(position)?.start ?? lineStart;
+        const rangeStart = document.getWordRangeAtPosition(position)?.start ?? position;
         const line = document.getText(new vscode.Range(lineStart, rangeStart));
-        return [...completionList, ...makeCompletionItems("escape", "Consideration", !line.includes("Consideration"))];
+        output.appendLine(rangeStart.character.toString());
+        if (shouldSkipCompletions(line)) return;
+
+        return [
+            ...completionList,
+            ...makeCompletionItems("escape", "Consideration:", !line.includes("Consideration:")),
+        ];
     }
 }
 
@@ -51,6 +61,10 @@ class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
     ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
         const range = document.getWordRangeAtPosition(position, this.regex);
         if (range === undefined) return;
+
+        const lineStart = position.with({ character: 0 });
+        const line = document.getText(new vscode.Range(lineStart, range.start));
+        if (shouldSkipCompletions(line)) return;
 
         const text = document.getText(range);
         const label = `${this.translation}: ${text}`;
@@ -70,7 +84,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.languages.registerCompletionItemProvider(
         selector,
         new PatternCompletionItemProvider(),
-        ..."abcdefghijklmnopqrstuvwxyz\\", // \ is just so the consideration snippet will trigger
+        ..."abcdefghijklmnopqrstuvwxyz0123456789\\", // \ is just so the consideration snippet will trigger
     );
 
     vscode.languages.registerCompletionItemProvider(

@@ -3,12 +3,10 @@
         // symbol used for single line comment
         "lineComment": "//",
         // symbols used for start and end of a block comment
-        "blockComment": [ "/*", "*/" ]
+        "blockComment": ["/*", "*/"]
     },
     // symbols used as brackets
-    "brackets": [
-        ["{", "}"]
-    ],
+    "brackets": [["{", "}"]],
     "autoClosingPairs": [
         ["{", "}"],
         ["/*", "*/"]
@@ -23,5 +21,6 @@
                 "appendText": "\r"
             }
         }
-    ]
+    ],
+    "wordPattern": "(?<=^\\s*Consideration:\\s*)[a-zA-Z0-9:'+\\-\\.][a-zA-Z0-9:'+\\-\\. ]*|(?<=^\\s*)Consideration:?|(?<=^\\s*)[a-zA-Z0-9:'+\\-\\.][a-zA-Z0-9:'+\\-\\. ]*"
 }
