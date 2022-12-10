@@ -10,9 +10,10 @@ Consideration
 Consideration: Consideration
 Consideration: {
 Consideration: }
+Zone Distillation: Animal
 Numerical Reflection: 12 // test
 Introspection
-Mind's Reflection
+Mind's Reflection /* test */
 Abacus Purification
 Numerical Reflection: -12
 Bookkeeper's Gambit: vv-v
@@ -30,7 +31,9 @@ Summon Rain
 Summon Cyclic Wisp
 B
 BB: B
-Multiplicative Dstl.
+Multiplicative Dstl. // //
+read/local
+test//l
 {
     // line comment
     /*
@@ -47,7 +50,7 @@ Multiplicative Dstl.
     Zone Distillation: Animal
     Numerical Reflection: 12 // test
     Introspection
-    Mind's Reflection
+    Mind's Reflection /* test */
     Abacus Purification
     Numerical Reflection: -12
     Bookkeeper's Gambit: vv-v
@@ -65,5 +68,10 @@ Multiplicative Dstl.
     Summon Cyclic Wisp
     B
     BB: B
-    Multiplicative Dstl.
+    Multiplicative Dstl. // //
+    read/local
+    test//l
 }
+// // //
+read/
+/read
