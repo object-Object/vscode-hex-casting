@@ -2,6 +2,17 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [unreleased]
+
+### Changes
+
+- Pattern images now have a transparent background and will adapt to your color theme
+- `:` is now themed as punctuation instead of a keyword
+
+### Fixes
+
+- Fix brackets having no colour when rainbow brackets are disabled
+
 ## [0.0.5] - 2022-12-10
 
 ### Additions

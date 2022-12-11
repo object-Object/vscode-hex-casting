@@ -4,7 +4,11 @@ import untypedRegistry from "./data/registry.json";
 interface PatternInfo {
     name: string;
     modName: string;
-    filename: string | null;
+    image: {
+        filename: string;
+        height: number;
+        width: number;
+    } | null;
     direction: string | null;
     pattern: string | null;
     args: string | null;
@@ -23,23 +27,47 @@ const selector: vscode.DocumentSelector = [
 
 const registry: { [translation: string]: PatternInfo } = untypedRegistry;
 
+const themePaths = {
+    [vscode.ColorThemeKind.Dark]: "dark/",
+    [vscode.ColorThemeKind.HighContrast]: "dark/",
+    [vscode.ColorThemeKind.HighContrastLight]: "light/",
+    [vscode.ColorThemeKind.Light]: "light/",
+};
+
+// maxImageSize overrides maxImageHeight
 function makeDocumentation(
     translation: string,
-    { modName, filename, direction, pattern, url }: PatternInfo,
-    imageWidth: number,
+    { modName, image, direction, pattern, url }: PatternInfo,
+    maxImageWidth?: number,
+    maxImageHeight?: number,
 ): vscode.MarkdownString {
     let result = new vscode.MarkdownString(
         url != null ? `**[${translation}](${url})**` : `**${translation}**`,
     ).appendMarkdown(` (${modName})`);
 
+    const { kind: themeKind } = vscode.window.activeColorTheme;
     // this feels sketchy. is there a better way to do this?
-    result.baseUri = vscode.Uri.file(__dirname.replace(/out$/, "") + "images/patterns/");
+    result.baseUri = vscode.Uri.file(__dirname.replace(/out$/, "") + "images/patterns/" + themePaths[themeKind]);
     result.supportHtml = true;
 
-    if (filename != null)
-        result = result.appendMarkdown(
-            `\n\n<img src="${filename}" alt="Stroke order for ${translation}" width="${imageWidth}"/>`,
-        );
+    if (image != null) {
+        const { filename, width, height } = image;
+        maxImageWidth = Math.min(width, maxImageWidth ?? width);
+        maxImageHeight = Math.min(height, maxImageHeight ?? height);
+
+        let sizedWidth = maxImageWidth;
+        let sizedHeight = (maxImageWidth * height) / width;
+
+        if (sizedHeight > maxImageHeight) {
+            sizedWidth = (maxImageHeight * width) / height;
+            sizedHeight = maxImageHeight;
+        }
+
+        const style = `width="${sizedWidth}" height="${sizedHeight}"`;
+
+        result = result.appendMarkdown(`\n\n<img src="${filename}" alt="Stroke order for ${translation}" ${style}/>`);
+    }
+
     if (direction != null && pattern != null) result = result.appendMarkdown(`\n\n\`${direction} ${pattern}\``);
 
     return result;
@@ -55,7 +83,7 @@ function makeCompletionItem(translation: string, hasParam: boolean, patternInfo?
             description: name,
         },
         detail: args ?? undefined,
-        documentation: makeDocumentation(translation, patternInfo, 300),
+        documentation: makeDocumentation(translation, patternInfo, 300, 300),
         kind: vscode.CompletionItemKind.Function,
         insertText: translation + (hasParam ? ": " : appendNewline ? "\n" : ""),
     };
@@ -157,7 +185,7 @@ class PatternHoverProvider implements vscode.HoverProvider {
         return {
             contents: [
                 ...(args ? [new vscode.MarkdownString(args)] : []),
-                makeDocumentation(translation, patternInfo, 200),
+                makeDocumentation(translation, patternInfo, undefined, 180),
             ],
         };
     }
@@ -186,6 +214,9 @@ export function activate(context: vscode.ExtensionContext) {
                 appendNewline = vscode.workspace.getConfiguration(rootSection).get<boolean>("appendNewline")!;
                 completionList = makeCompletionList();
             }
+        }),
+        vscode.window.onDidChangeActiveColorTheme((e) => {
+            completionList = makeCompletionList();
         }),
     );
 }
