@@ -2,7 +2,7 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
-## [unreleased]
+## [0.0.6] - 2022-12-10
 
 ### Changes
 

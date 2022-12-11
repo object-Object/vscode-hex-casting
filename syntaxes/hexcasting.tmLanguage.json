@@ -52,8 +52,12 @@
                     "match": "Reflection|Purification|Distillation|Exaltation|Decomposition|Disintegration|Gambit|Nadir|Zenith|Dstl\\."
                 },
                 {
-                    "name": "keyword",
+                    "name": "punctuation.separator.colon",
                     "match": "(?<!(?:/\\*|//).*):"
+                },
+                {
+                    "name": "punctuation.definition.block",
+                    "match": "[{}]"
                 }
             ]
         }
