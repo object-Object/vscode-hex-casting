@@ -242,8 +242,8 @@ export function activate(context: vscode.ExtensionContext) {
         ),
         vscode.languages.registerCompletionItemProvider(
             selector,
-            new SpecialCompletionItemProvider("Numerical Reflection", /-?\d+/),
-            ..."-0123456789",
+            new SpecialCompletionItemProvider("Numerical Reflection", /-?(\d*\.\d*|\d+)/),
+            ..."-0123456789.",
         ),
         vscode.languages.registerCompletionItemProvider(
             selector,

@@ -18,7 +18,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 ### Fixes
 
 - Partially fix pattern suggestions being shown in comments
-- TODO: Fix `.` not counting as part of a number
+- Fix `.` not counting as part of a number for Numerical Reflection shortcut
 - Fix leading Consideration not showing hover text
 - Fix Consideration image being upside down
 
