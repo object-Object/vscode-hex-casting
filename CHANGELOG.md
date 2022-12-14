@@ -12,9 +12,8 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 
 - Pressing tab within nested brackets now indents as far as necessary instead of just one level
 - TODO: Selecting a completion in the middle of a line now removes the text after the cursor
-- TODO: `[` and `]` are now considered brackets, for better HexBug/hexdecode compatibility
+- `[` and `]` are now considered brackets, for better HexBug/hexdecode compatibility
 - TODO: Hovering over `{` and `}` now shows the tooltip for Introspection and Retrospection
-- TODO: Internal: improve TextMate regex (noted here because it may introduce bugs)
 
 ### Fixes
 

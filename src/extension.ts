@@ -81,7 +81,7 @@ function getInsertTextSuffix(hasParam: boolean, trimmedNextLine: string): string
         case "always":
             return "\n";
         case "auto":
-            return !trimmedNextLine.length || /(?<!(\/\/|\/\*).*)[\]\}]/.test(trimmedNextLine) ? "\n" : "";
+            return !trimmedNextLine.length || /(?<!\/\*((?!\*\/).)*|\/\/.*)[\[{]/.test(trimmedNextLine) ? "\n" : "";
         case "never":
             return "";
     }

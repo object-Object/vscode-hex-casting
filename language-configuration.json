@@ -6,9 +6,13 @@
         "blockComment": ["/*", "*/"]
     },
     // symbols used as brackets
-    "brackets": [["{", "}"]],
+    "brackets": [
+        ["{", "}"],
+        ["[", "]"]
+    ],
     "autoClosingPairs": [
         ["{", "}"],
+        ["[", "]"],
         ["/*", "*/"]
     ],
     "onEnterRules": [
@@ -20,11 +24,17 @@
                 // this SHOULD just not append anything, including indentation
                 "appendText": "\r"
             }
+        },
+        {
+            "beforeText": "//.*[\\[{]",
+            "action": {
+                "indent": "none"
+            }
         }
     ],
     "wordPattern": "(?<=^\\s*Consideration:\\s*)(?!//|/\\*)[a-zA-Z0-9+\\-\\./][a-zA-Z0-9:'+\\-\\./ ]*(?!\\*)|(?<=^\\s*)Consideration:?|(?<=^\\s*)(?!//)[a-zA-Z0-9:'+\\-\\./][a-zA-Z0-9:'+\\-\\./ ]*?(?=//|/\\*)|(?<=^\\s*)(?!//|/\\*)[a-zA-Z0-9+\\-\\./][a-zA-Z0-9:'+\\-\\./ ]*",
     "indentationRules": {
-        "increaseIndentPattern": "{",
-        "decreaseIndentPattern": "}"
+        "increaseIndentPattern": "(?<!/\\*((?!\\*/)(.|\n))*|//.*)[\\[{]",
+        "decreaseIndentPattern": "(?<!/\\*((?!\\*/)(.|\n))*|//.*)[\\]}]"
     }
 }

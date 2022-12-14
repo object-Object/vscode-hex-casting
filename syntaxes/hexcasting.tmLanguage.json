@@ -57,7 +57,7 @@
                 },
                 {
                     "name": "punctuation.definition.block",
-                    "match": "[{}]"
+                    "match": "[{}\\[\\]]"
                 }
             ]
         }
