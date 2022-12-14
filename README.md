@@ -21,7 +21,7 @@ This extension contributes the following settings:
 ## Known Issues
 
 * Many patterns show up twice in the completion list, because it's matching both the name and the translation. As far as I know, there's nothing I can do about this.
-* Some of the 0.9.x patterns also show up in the completion list, because Hexal, for some reason, has all of Hex's translations in a directory somewhere, and it hasn't been updated. This probably counts as a bug in Hexal and/or HexBug, not this extension.
+* Pattern suggestions show up in block comments. Due to [this open issue](https://github.com/microsoft/vscode/issues/580), there's not really anything I can do about this.
 
 ## Unknown Issues
 

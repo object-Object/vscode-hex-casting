@@ -139,7 +139,7 @@ function makeCompletionList(trimmedNextLine: string, range: vscode.Range): vscod
 }
 
 function shouldSkipCompletions(line: string): boolean {
-    return /\S\s/.test(line.replace("Consideration:", ""));
+    return /\S\s|\/\/|\/\*/.test(line.replace("Consideration:", ""));
 }
 
 function getTrimmedNextLine(document: vscode.TextDocument, position: vscode.Position): string {
