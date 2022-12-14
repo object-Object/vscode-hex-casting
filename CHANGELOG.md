@@ -13,7 +13,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 - Pressing tab within nested brackets now indents as far as necessary instead of just one level
 - Selecting a completion in the middle of a line now removes the text after the cursor
 - `[` and `]` are now considered brackets, for better HexBug/hexdecode compatibility
-- TODO: Hovering over `{` and `}` now shows the tooltip for Introspection and Retrospection
+- Hovering over `{` and `}` now shows the tooltip for Introspection and Retrospection
 
 ### Fixes
 

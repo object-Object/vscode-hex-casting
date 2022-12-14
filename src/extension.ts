@@ -207,11 +207,13 @@ class PatternHoverProvider implements vscode.HoverProvider {
         position: vscode.Position,
         token: vscode.CancellationToken,
     ): vscode.ProviderResult<vscode.Hover> {
-        const range = document.getWordRangeAtPosition(position);
+        const range = document.getWordRangeAtPosition(position) ?? document.getWordRangeAtPosition(position, /[{}]/);
         if (range === undefined) return;
 
         const translation = document
             .getText(range)
+            .replace("{", "Introspection")
+            .replace("}", "Retrospection")
             .replace(/(?<=Bookkeeper's Gambit):\s*[v-]+|(?<=Numerical Reflection):\s*-?[0-9]+/, "")
             .trim();
         if (!(translation in registry)) return;
