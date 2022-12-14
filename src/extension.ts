@@ -214,7 +214,10 @@ class PatternHoverProvider implements vscode.HoverProvider {
             .getText(range)
             .replace("{", "Introspection")
             .replace("}", "Retrospection")
-            .replace(/(?<=Bookkeeper's Gambit):\s*[v-]+|(?<=Numerical Reflection):\s*-?[0-9]+/, "")
+            .replace(
+                /(?<=Bookkeeper's Gambit):\s*[v-]+|(?<=Numerical Reflection):\s*-?[0-9]+|(?<=Consideration):.*/,
+                "",
+            )
             .trim();
         if (!(translation in registry)) return;
 
