@@ -2,7 +2,7 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
-## [unreleased]
+## [0.0.7] - 2022-12-14
 
 ### Additions
 
@@ -12,7 +12,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 
 - Pressing tab within nested brackets now indents as far as necessary instead of just one level
 - Selecting a completion in the middle of a line now removes the text after the cursor
-- `[` and `]` are now considered brackets, for better HexBug/hexdecode compatibility
+- `[` and `]` are now considered brackets for better HexBug/hexdecode compatibility
 - Hovering over `{` and `}` now shows the hover text for Introspection and Retrospection, respectively
 
 ### Fixes
@@ -20,7 +20,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 - Partially fix pattern suggestions being shown in comments
 - Fix `.` not counting as part of a number for Numerical Reflection shortcut
 - Fix leading Consideration not showing hover text
-- Fix Consideration image being upside down
+- Fix upside down Consideration image
 
 ## [0.0.6] - 2022-12-10
 
