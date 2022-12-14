@@ -20,7 +20,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 - TODO: Fix pattern suggestions being shown in comments
 - TODO: Fix `.` not counting as part of a number
 - Fix leading Consideration not showing hover text
-- Fix Consideration pattern being upside down
+- Fix Consideration image being upside down
 
 ## [0.0.6] - 2022-12-10
 
