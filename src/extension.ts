@@ -91,6 +91,7 @@ function makeCompletionItem(
     translation: string,
     hasParam: boolean,
     trimmedNextLine: string,
+    range: vscode.Range,
     patternInfo?: PatternInfo,
 ): vscode.CompletionItem {
     patternInfo = patternInfo ?? registry[translation];
@@ -105,6 +106,7 @@ function makeCompletionItem(
         documentation: makeDocumentation(translation, patternInfo, 300, 300),
         kind: vscode.CompletionItemKind.Function,
         insertText: translation + getInsertTextSuffix(hasParam, trimmedNextLine),
+        range,
     };
 }
 
@@ -112,16 +114,17 @@ function makeCompletionItems(
     translation: string,
     hasParam: boolean,
     trimmedNextLine: string,
+    range: vscode.Range,
     patternInfo?: PatternInfo,
 ): vscode.CompletionItem[] {
     patternInfo = patternInfo ?? registry[translation];
     const { name } = patternInfo;
 
-    const base = makeCompletionItem(translation, hasParam, trimmedNextLine, patternInfo);
+    const base = makeCompletionItem(translation, hasParam, trimmedNextLine, range, patternInfo);
     return [base, { ...base, filterText: name, sortText: "~" + translation }];
 }
 
-function makeCompletionList(trimmedNextLine: string): vscode.CompletionItem[] {
+function makeCompletionList(trimmedNextLine: string, range: vscode.Range): vscode.CompletionItem[] {
     return Object.entries(registry)
         .filter(([name]) => name != "escape")
         .flatMap<vscode.CompletionItem>(([translation, patternInfo]) =>
@@ -129,6 +132,7 @@ function makeCompletionList(trimmedNextLine: string): vscode.CompletionItem[] {
                 translation,
                 ["mask", "number"].includes(patternInfo.name),
                 trimmedNextLine,
+                range,
                 patternInfo,
             ),
         );
@@ -156,9 +160,10 @@ class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
         if (shouldSkipCompletions(line)) return;
 
         const trimmedNextLine = getTrimmedNextLine(document, position);
+        const range = document.lineAt(position.line).range.with({ start: rangeStart });
         return [
-            ...makeCompletionList(trimmedNextLine),
-            ...makeCompletionItems("Consideration", !line.includes("Consideration:"), trimmedNextLine),
+            ...makeCompletionList(trimmedNextLine, range),
+            ...makeCompletionItems("Consideration", !line.includes("Consideration:"), trimmedNextLine, range),
         ];
     }
 }
@@ -172,23 +177,23 @@ class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
         token: vscode.CancellationToken,
         context: vscode.CompletionContext,
     ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
-        const range = document.getWordRangeAtPosition(position, this.regex);
-        if (range === undefined) return;
+        const wordRange = document.getWordRangeAtPosition(position, this.regex);
+        if (wordRange === undefined) return;
 
         const lineStart = position.with({ character: 0 });
-        const line = document.getText(new vscode.Range(lineStart, range.start));
+        const line = document.getText(new vscode.Range(lineStart, wordRange.start));
         if (shouldSkipCompletions(line)) return;
 
-        const text = document.getText(range);
+        const text = document.getText(wordRange);
         const label = `${this.translation}: ${text}`;
         const patternInfo = registry[this.translation];
         const trimmedNextLine = getTrimmedNextLine(document, position);
+        const range = wordRange.with({ end: document.lineAt(position.line).range.end });
 
         return [
             {
-                ...makeCompletionItem(label, false, trimmedNextLine, patternInfo),
+                ...makeCompletionItem(label, false, trimmedNextLine, range, patternInfo),
                 kind: undefined,
-                range,
                 preselect: true,
                 filterText: text,
             },
