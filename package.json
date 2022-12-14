@@ -66,9 +66,19 @@
                 "title": "Hex Casting",
                 "properties": {
                     "hex-casting.appendNewline": {
-                        "type": "boolean",
-                        "default": true,
-                        "description": "Go to the next line after selecting a pattern from the completion list."
+                        "type": "string",
+                        "default": "auto",
+                        "enum": [
+                            "always",
+                            "auto",
+                            "never"
+                        ],
+                        "enumDescriptions": [
+                            null,
+                            "Only insert a newline if the next line is empty or a closing bracket.",
+                            null
+                        ],
+                        "description": "Controls whether the editor should insert a newline after selecting a pattern from the completion list."
                     }
                 }
             }

@@ -15,10 +15,12 @@ interface PatternInfo {
     url: string | null;
 }
 
+type AppendNewline = "always" | "auto" | "never";
+
 const rootSection = "hex-casting";
 
 const output = vscode.window.createOutputChannel("Hex Casting");
-let appendNewline = vscode.workspace.getConfiguration(rootSection).get<boolean>("appendNewline")!;
+let appendNewline: AppendNewline = vscode.workspace.getConfiguration(rootSection).get("appendNewline")!;
 
 const selector: vscode.DocumentSelector = [
     { scheme: "file", language: "hexcasting" },
@@ -73,7 +75,24 @@ function makeDocumentation(
     return result;
 }
 
-function makeCompletionItem(translation: string, hasParam: boolean, patternInfo?: PatternInfo): vscode.CompletionItem {
+function getInsertTextSuffix(hasParam: boolean, trimmedNextLine: string): string {
+    if (hasParam) return ": ";
+    switch (appendNewline) {
+        case "always":
+            return "\n";
+        case "auto":
+            return !trimmedNextLine.length || /(?<!(\/\/|\/\*).*)[\]\}]/.test(trimmedNextLine) ? "\n" : "";
+        case "never":
+            return "";
+    }
+}
+
+function makeCompletionItem(
+    translation: string,
+    hasParam: boolean,
+    trimmedNextLine: string,
+    patternInfo?: PatternInfo,
+): vscode.CompletionItem {
     patternInfo = patternInfo ?? registry[translation];
     const { name, args } = patternInfo;
 
@@ -85,34 +104,43 @@ function makeCompletionItem(translation: string, hasParam: boolean, patternInfo?
         detail: args ?? undefined,
         documentation: makeDocumentation(translation, patternInfo, 300, 300),
         kind: vscode.CompletionItemKind.Function,
-        insertText: translation + (hasParam ? ": " : appendNewline ? "\n" : ""),
+        insertText: translation + getInsertTextSuffix(hasParam, trimmedNextLine),
     };
 }
 
 function makeCompletionItems(
     translation: string,
     hasParam: boolean,
+    trimmedNextLine: string,
     patternInfo?: PatternInfo,
 ): vscode.CompletionItem[] {
     patternInfo = patternInfo ?? registry[translation];
     const { name } = patternInfo;
 
-    const base = makeCompletionItem(translation, hasParam, patternInfo);
+    const base = makeCompletionItem(translation, hasParam, trimmedNextLine, patternInfo);
     return [base, { ...base, filterText: name, sortText: "~" + translation }];
 }
 
-function makeCompletionList(): vscode.CompletionItem[] {
+function makeCompletionList(trimmedNextLine: string): vscode.CompletionItem[] {
     return Object.entries(registry)
         .filter(([name]) => name != "escape")
         .flatMap<vscode.CompletionItem>(([translation, patternInfo]) =>
-            makeCompletionItems(translation, ["mask", "number"].includes(patternInfo.name), patternInfo),
+            makeCompletionItems(
+                translation,
+                ["mask", "number"].includes(patternInfo.name),
+                trimmedNextLine,
+                patternInfo,
+            ),
         );
 }
 
-let completionList: vscode.CompletionItem[] = makeCompletionList();
-
 function shouldSkipCompletions(line: string): boolean {
     return /\S\s/.test(line.replace("Consideration:", ""));
+}
+
+function getTrimmedNextLine(document: vscode.TextDocument, position: vscode.Position): string {
+    const nextLineNum = position.line + 1;
+    return document.lineCount > nextLineNum ? document.lineAt(nextLineNum).text.trim() : "";
 }
 
 class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
@@ -127,7 +155,11 @@ class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
         const line = document.getText(new vscode.Range(lineStart, rangeStart));
         if (shouldSkipCompletions(line)) return;
 
-        return [...completionList, ...makeCompletionItems("Consideration", !line.includes("Consideration:"))];
+        const trimmedNextLine = getTrimmedNextLine(document, position);
+        return [
+            ...makeCompletionList(trimmedNextLine),
+            ...makeCompletionItems("Consideration", !line.includes("Consideration:"), trimmedNextLine),
+        ];
     }
 }
 
@@ -150,15 +182,15 @@ class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
         const text = document.getText(range);
         const label = `${this.translation}: ${text}`;
         const patternInfo = registry[this.translation];
+        const trimmedNextLine = getTrimmedNextLine(document, position);
 
         return [
             {
-                ...makeCompletionItem(label, false, patternInfo),
+                ...makeCompletionItem(label, false, trimmedNextLine, patternInfo),
                 kind: undefined,
                 range,
                 preselect: true,
                 filterText: text,
-                insertText: label + (appendNewline ? "\n" : ""),
             },
         ];
     }
@@ -211,12 +243,8 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.languages.registerHoverProvider(selector, new PatternHoverProvider()),
         vscode.workspace.onDidChangeConfiguration((e) => {
             if (e.affectsConfiguration("hex-casting.appendNewline")) {
-                appendNewline = vscode.workspace.getConfiguration(rootSection).get<boolean>("appendNewline")!;
-                completionList = makeCompletionList();
+                appendNewline = vscode.workspace.getConfiguration(rootSection).get("appendNewline")!;
             }
-        }),
-        vscode.window.onDidChangeActiveColorTheme((e) => {
-            completionList = makeCompletionList();
         }),
     );
 }

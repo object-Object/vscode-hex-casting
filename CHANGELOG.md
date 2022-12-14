@@ -2,6 +2,25 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [unreleased]
+
+### Additions
+
+- Add `auto` option to `appendNewline` setting, which only appends a newline if the next line is empty or a closing bracket
+
+### Changes
+
+- Pressing tab within nested brackets now indents as far as necessary instead of just one level
+- TODO: Selecting a completion in the middle of a line now removes the text after the cursor
+- TODO: `[` and `]` are now considered brackets, for better HexBug/hexdecode compatibility
+- TODO: Hovering over `{` and `}` now shows the tooltip for Introspection and Retrospection
+- TODO: Internal: improve TextMate regex (noted here because it may introduce bugs)
+
+### Fixes
+
+- TODO: Fix pattern suggestions being shown in comments
+- TODO: Fix `.` not counting as part of a number
+
 ## [0.0.6] - 2022-12-10
 
 ### Changes
@@ -17,7 +36,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 
 ### Additions
 
-- Add `appendNewline` configuration option
+- Add `appendNewline` setting to control whether the editor should go to the next line after selecting a pattern from the completion list
 - Add pattern name, mod name, args, image, and angle signature to completion list and hover text
 
 ### Fixes

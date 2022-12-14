@@ -8,12 +8,15 @@ VSCode language features for the Hex Casting mod for Minecraft.
 
 * Full syntax highlighting
 * Pattern autocomplete for Hex Casting, Hexal, and MoreIotas
+* Pattern hover text with name, arguments, mod name, angle signature, and a picture of the stroke order
 * C-style line and block comments
 * Snippets to speed up your workflow
 
 ## Extension Settings
 
-None at this time.
+This extension contributes the following settings:
+
+* `hex-casting.appendNewline`: Controls whether the editor should insert a newline after selecting a pattern from the completion list. If set to `auto`, only appends a newline if the next line is empty or a closing bracket.
 
 ## Known Issues
 
