@@ -2,6 +2,16 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.0.8] - 2022-12-14
+
+### Changes
+
+- The `\` and `\\` snippets now respect the `appendNewline` setting
+
+### Fixes
+
+- Fix `auto` option for the `appendNewline` setting appending a newline for opening brackets, not closing
+
 ## [0.0.7] - 2022-12-14
 
 ### Additions
