@@ -88,45 +88,45 @@ function getInsertTextSuffix(hasParam: boolean, trimmedNextLine: string): string
 }
 
 function makeCompletionItem(
-    translation: string,
+    label: string,
     hasParam: boolean,
     trimmedNextLine: string,
     range: vscode.Range,
     patternInfo?: PatternInfo,
 ): vscode.CompletionItem {
-    patternInfo = patternInfo ?? registry[translation];
+    patternInfo = patternInfo ?? registry[label];
     const { name, args } = patternInfo;
 
     return {
         label: {
-            label: translation,
+            label: label,
             description: name,
         },
         detail: args ?? undefined,
-        documentation: makeDocumentation(translation, patternInfo, 300, 300),
+        documentation: makeDocumentation(label, patternInfo, 300, 300),
         kind: vscode.CompletionItemKind.Function,
-        insertText: translation + getInsertTextSuffix(hasParam, trimmedNextLine),
+        insertText: label + getInsertTextSuffix(hasParam, trimmedNextLine),
         range,
     };
 }
 
 function makeCompletionItems(
-    translation: string,
+    label: string,
     hasParam: boolean,
     trimmedNextLine: string,
     range: vscode.Range,
     patternInfo?: PatternInfo,
 ): vscode.CompletionItem[] {
-    patternInfo = patternInfo ?? registry[translation];
+    patternInfo = patternInfo ?? registry[label];
     const { name } = patternInfo;
 
-    const base = makeCompletionItem(translation, hasParam, trimmedNextLine, range, patternInfo);
-    return [base, { ...base, filterText: name, sortText: "~" + translation }];
+    const base = makeCompletionItem(label, hasParam, trimmedNextLine, range, patternInfo);
+    return [base, { ...base, filterText: name, sortText: "~" + label }];
 }
 
 function makeCompletionList(trimmedNextLine: string, range: vscode.Range): vscode.CompletionItem[] {
     return Object.entries(registry)
-        .filter(([name]) => name != "escape")
+        .filter(([translation]) => translation != "Consideration")
         .flatMap<vscode.CompletionItem>(([translation, patternInfo]) =>
             makeCompletionItems(
                 translation,
@@ -201,6 +201,37 @@ class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
     }
 }
 
+class ConsiderationCompletionItemProvider implements vscode.CompletionItemProvider {
+    public provideCompletionItems(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        token: vscode.CancellationToken,
+        context: vscode.CompletionContext,
+    ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
+        const wordRange = document.getWordRangeAtPosition(position, /(?<=^\s*)(Consideration: \\$|\\\\?)/);
+        if (wordRange === undefined) return;
+
+        const lineStart = position.with({ character: 0 });
+        const line = document.getText(new vscode.Range(lineStart, wordRange.start));
+        if (shouldSkipCompletions(line)) return;
+
+        const text = document.getText(wordRange);
+        const isSingle = text === "\\";
+        const label = "Consideration" + (isSingle ? "" : ": Consideration");
+        const trimmedNextLine = getTrimmedNextLine(document, position);
+        const range = isSingle ? wordRange : wordRange.with({ end: document.lineAt(position.line).range.end });
+
+        return [
+            {
+                ...makeCompletionItem(label, isSingle, trimmedNextLine, range, registry["Consideration"]),
+                kind: vscode.CompletionItemKind.Snippet,
+                preselect: true,
+                filterText: text,
+            },
+        ];
+    }
+}
+
 class PatternHoverProvider implements vscode.HoverProvider {
     public provideHover(
         document: vscode.TextDocument,
@@ -238,7 +269,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.languages.registerCompletionItemProvider(
             selector,
             new PatternCompletionItemProvider(),
-            ..."abcdefghijklmnopqrstuvwxyz0123456789\\", // \ is just so the consideration snippet will trigger
+            ..."abcdefghijklmnopqrstuvwxyz0123456789",
         ),
         vscode.languages.registerCompletionItemProvider(
             selector,
@@ -250,6 +281,7 @@ export function activate(context: vscode.ExtensionContext) {
             new SpecialCompletionItemProvider("Bookkeeper's Gambit", /[v\-]+/),
             ..."v-",
         ),
+        vscode.languages.registerCompletionItemProvider(selector, new ConsiderationCompletionItemProvider(), "\\"),
         vscode.languages.registerHoverProvider(selector, new PatternHoverProvider()),
         vscode.workspace.onDidChangeConfiguration((e) => {
             if (e.affectsConfiguration("hex-casting.appendNewline")) {
