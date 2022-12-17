@@ -7,7 +7,7 @@ VSCode language features for the Hex Casting mod for Minecraft.
 ![Feature demo gif](/images/demo.gif)
 
 * Full syntax highlighting
-* Pattern autocomplete for Hex Casting, Hexal, and MoreIotas
+* Pattern autocomplete for Hex Casting, Hexal, MoreIotas, and Hexbound
 * Pattern hover text with name, arguments, mod name, angle signature, and a picture of the stroke order
 * C-style line and block comments
 * Snippets to speed up your workflow

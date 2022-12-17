@@ -2,6 +2,16 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.0.9] - 2022-12-17
+
+### Additions
+
+- Add Hexbound support
+
+### Fixes
+
+- Fix a couple of patterns still using the old abbreviated type (eg. Multiplicative Dstl.)
+
 ## [0.0.8] - 2022-12-14
 
 ### Changes
