@@ -22,7 +22,7 @@ interface DefaultPatternInfo extends PatternInfo {
 class MacroPatternInfo implements PatternInfo {
     public args: string | null;
 
-    public modName = "User Macro";
+    public modName = "macro";
     public image = null;
     public direction = null;
     public pattern = null;
@@ -426,7 +426,38 @@ class DiagnosticsProvider implements vscode.DocumentLinkProvider {
         token: vscode.CancellationToken,
     ): vscode.ProviderResult<vscode.DocumentLink[]> {
         refreshDiagnostics(document, this.patternCollection, this.directiveCollection);
-        return [];
+        return;
+    }
+}
+
+class MacroInlayHintsProvider implements vscode.InlayHintsProvider {
+    provideInlayHints(
+        document: vscode.TextDocument,
+        range: vscode.Range,
+        token: vscode.CancellationToken,
+    ): vscode.ProviderResult<vscode.InlayHint[]> {
+        const lines = document.getText(range).split("\n");
+        const hints = [];
+
+        let inComment = false;
+
+        for (const [i, line] of lines.entries()) {
+            for (const match of line.matchAll(patternRe)) {
+                if (isInMacroRegistry(document, match[0])) {
+                    const line = range.start.line + i;
+                    const character = (i == 0 ? range.start.character : 0) + match.index! + match[0].length;
+
+                    const hint = new vscode.InlayHint(
+                        new vscode.Position(line, character),
+                        " (macro)",
+                        vscode.InlayHintKind.Type,
+                    );
+                    hints.push(hint);
+                }
+            }
+        }
+
+        return hints;
     }
 }
 
@@ -462,6 +493,9 @@ export function activate(context: vscode.ExtensionContext) {
 
         // hover
         vscode.languages.registerHoverProvider(selector, new PatternHoverProvider()),
+
+        // inlay hints
+        vscode.languages.registerInlayHintsProvider(selector, new MacroInlayHintsProvider()),
 
         // configuration
         vscode.workspace.onDidChangeConfiguration((e) => {
