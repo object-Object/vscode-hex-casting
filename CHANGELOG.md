@@ -2,6 +2,17 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [unreleased]
+
+### Additions
+
+- Add macro support with `#define`
+- Add diagnostics to warn on unknown patterns or invalid `#` directives
+
+### Fixes
+
+- Fix pattern args containing unparsed Markdown
+
 ## [0.0.10] - 2022-12-18
 
 ### Changes

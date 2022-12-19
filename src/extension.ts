@@ -122,12 +122,17 @@ function isInDefaultRegistry(translation: string): boolean {
     return Object.prototype.hasOwnProperty.call(defaultRegistry, translation);
 }
 
-function isInMacroRegistry(translation: string, newRegistry?: Registry<MacroPatternInfo>): boolean {
-    return Object.prototype.hasOwnProperty.call(newRegistry ?? macroRegistry, translation);
+function isInMacroRegistry(
+    document: vscode.TextDocument,
+    translation: string,
+    newRegistry?: Registry<MacroPatternInfo>,
+): boolean {
+    const documentMacros = newRegistry ?? macroRegistry.get(document.uri);
+    return documentMacros ? Object.prototype.hasOwnProperty.call(documentMacros, translation) : false;
 }
 
-function isInRegistry(translation: string): boolean {
-    return isInDefaultRegistry(translation) || isInMacroRegistry(translation);
+function isInRegistry(document: vscode.TextDocument, translation: string): boolean {
+    return isInDefaultRegistry(translation) || isInMacroRegistry(document, translation);
 }
 
 function getFromRegistry(document: vscode.TextDocument, translation: string): PatternInfo | undefined {
@@ -308,7 +313,7 @@ class PatternHoverProvider implements vscode.HoverProvider {
         if (range === undefined) return;
 
         const translation = prepareTranslation(document.getText(range));
-        if (!isInRegistry(translation)) return;
+        if (!isInRegistry(document, translation)) return;
 
         const patternInfo = getFromRegistry(document, translation)!;
         const { args } = patternInfo;
@@ -348,7 +353,7 @@ function refreshDiagnostics(
             // pattern diagnostics
             for (const match of line.text.matchAll(patternRe)) {
                 const translation = prepareTranslation(match[0]);
-                if (!isInRegistry(translation)) {
+                if (!isInRegistry(document, translation)) {
                     const start = new vscode.Position(lineIndex, match.index!);
                     const end = start.translate({ characterDelta: translation.length });
 
@@ -382,7 +387,7 @@ function refreshDiagnostics(
                             `Pattern "${match[2]}" already exists.`,
                             vscode.DiagnosticSeverity.Error,
                         );
-                    } else if (isInMacroRegistry(match[2], newMacroRegistry)) {
+                    } else if (isInMacroRegistry(document, match[2], newMacroRegistry)) {
                         diagnostic = new vscode.Diagnostic(
                             new vscode.Range(nameStart, nameEnd),
                             `Pattern "${match[2]}" is defined in a previous #define directive.`,

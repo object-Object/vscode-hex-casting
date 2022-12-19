@@ -11,6 +11,8 @@ VSCode language features for the Hex Casting mod for Minecraft.
 * Pattern hover text with name, arguments, mod name, angle signature, and a picture of the stroke order
 * C-style line and block comments
 * Snippets to speed up your workflow
+* `#define` support for Brigh's Gambit macros
+* Language diagnostics/linting to highlight unknown patterns and invalid directives
 
 ## Extension Settings
 
