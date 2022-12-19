@@ -2,6 +2,12 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.0.10] - 2022-12-18
+
+### Changes
+
+- Update Hexbound data, adding web book links
+
 ## [0.0.9] - 2022-12-17
 
 ### Additions
