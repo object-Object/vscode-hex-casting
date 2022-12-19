@@ -79,6 +79,11 @@
                             null
                         ],
                         "description": "Controls whether the editor should insert a newline after selecting a pattern from the completion list."
+                    },
+                    "hex-casting.enableDiagnostics": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Controls whether the editor should show diagnostics, such as warnings for unknown patterns."
                     }
                 }
             }

@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import untypedRegistry from "./data/registry.json";
 
 interface PatternInfo {
-    name: string;
+    name?: string;
     modName: string;
     image: {
         filename: string;
@@ -15,26 +15,49 @@ interface PatternInfo {
     url: string | null;
 }
 
+interface DefaultPatternInfo extends PatternInfo {
+    name: string;
+}
+
+class MacroPatternInfo implements PatternInfo {
+    public args: string | null;
+
+    public modName = "User Macro";
+    public image = null;
+    public direction = null;
+    public pattern = null;
+    public url = null;
+
+    constructor(args?: string) {
+        this.args = args ?? null;
+    }
+}
+
 type AppendNewline = "always" | "auto" | "never";
+type Registry<T extends PatternInfo> = { [translation: string]: T };
 
 const rootSection = "hex-casting";
-
 const output = vscode.window.createOutputChannel("Hex Casting");
-let appendNewline: AppendNewline = vscode.workspace.getConfiguration(rootSection).get("appendNewline")!;
-
 const selector: vscode.DocumentSelector = [
     { scheme: "file", language: "hexcasting" },
     { scheme: "untitled", language: "hexcasting" },
 ];
-
-const registry: { [translation: string]: PatternInfo } = untypedRegistry;
-
+const defaultRegistry: Registry<DefaultPatternInfo> = untypedRegistry;
+const macroRegistry: Map<vscode.Uri, Registry<MacroPatternInfo>> = new Map();
 const themePaths = {
     [vscode.ColorThemeKind.Dark]: "dark/",
     [vscode.ColorThemeKind.HighContrast]: "dark/",
     [vscode.ColorThemeKind.HighContrastLight]: "light/",
     [vscode.ColorThemeKind.Light]: "light/",
 };
+
+let appendNewline: AppendNewline;
+let enableDiagnostics: boolean;
+
+function updateConfiguration() {
+    appendNewline = vscode.workspace.getConfiguration(rootSection).get("appendNewline")!;
+    enableDiagnostics = vscode.workspace.getConfiguration(rootSection).get("enableDiagnostics")!;
+}
 
 // maxImageSize overrides maxImageHeight
 function makeDocumentation(
@@ -87,14 +110,44 @@ function getInsertTextSuffix(hasParam: boolean, trimmedNextLine: string): string
     }
 }
 
+function prepareTranslation(text: string): string {
+    return text
+        .replace("{", "Introspection")
+        .replace("}", "Retrospection")
+        .replace(/(?<=Bookkeeper's Gambit):\s*[v-]+|(?<=Numerical Reflection):\s*-?[0-9]+|(?<=Consideration):.*/, "")
+        .trim();
+}
+
+function isInDefaultRegistry(translation: string): boolean {
+    return Object.prototype.hasOwnProperty.call(defaultRegistry, translation);
+}
+
+function isInMacroRegistry(translation: string, newRegistry?: Registry<MacroPatternInfo>): boolean {
+    return Object.prototype.hasOwnProperty.call(newRegistry ?? macroRegistry, translation);
+}
+
+function isInRegistry(translation: string): boolean {
+    return isInDefaultRegistry(translation) || isInMacroRegistry(translation);
+}
+
+function getFromRegistry(document: vscode.TextDocument, translation: string): PatternInfo | undefined {
+    return defaultRegistry[translation] ?? macroRegistry.get(document.uri)?.[translation];
+}
+
+function getRegistryEntries(document: vscode.TextDocument): [string, PatternInfo][] {
+    const documentMacros = macroRegistry.get(document.uri);
+    return Object.entries<PatternInfo>(defaultRegistry).concat(documentMacros ? Object.entries(documentMacros) : []);
+}
+
 function makeCompletionItem(
+    document: vscode.TextDocument,
     label: string,
     hasParam: boolean,
     trimmedNextLine: string,
     range: vscode.Range,
     patternInfo?: PatternInfo,
 ): vscode.CompletionItem {
-    patternInfo = patternInfo ?? registry[label];
+    patternInfo = patternInfo ?? getFromRegistry(document, label)!;
     const { name, args } = patternInfo;
 
     return {
@@ -111,26 +164,32 @@ function makeCompletionItem(
 }
 
 function makeCompletionItems(
+    document: vscode.TextDocument,
     label: string,
     hasParam: boolean,
     trimmedNextLine: string,
     range: vscode.Range,
     patternInfo?: PatternInfo,
 ): vscode.CompletionItem[] {
-    patternInfo = patternInfo ?? registry[label];
+    patternInfo = patternInfo ?? getFromRegistry(document, label)!;
     const { name } = patternInfo;
 
-    const base = makeCompletionItem(label, hasParam, trimmedNextLine, range, patternInfo);
-    return [base, { ...base, filterText: name, sortText: "~" + label }];
+    const base = makeCompletionItem(document, label, hasParam, trimmedNextLine, range, patternInfo);
+    return [base, ...(name ? [{ ...base, filterText: name, sortText: "~" + label }] : [])];
 }
 
-function makeCompletionList(trimmedNextLine: string, range: vscode.Range): vscode.CompletionItem[] {
-    return Object.entries(registry)
+function makeCompletionList(
+    document: vscode.TextDocument,
+    trimmedNextLine: string,
+    range: vscode.Range,
+): vscode.CompletionItem[] {
+    return getRegistryEntries(document)
         .filter(([translation]) => translation != "Consideration")
         .flatMap<vscode.CompletionItem>(([translation, patternInfo]) =>
             makeCompletionItems(
+                document,
                 translation,
-                ["mask", "number"].includes(patternInfo.name),
+                !patternInfo.name ? false : ["mask", "number"].includes(patternInfo.name),
                 trimmedNextLine,
                 range,
                 patternInfo,
@@ -139,7 +198,7 @@ function makeCompletionList(trimmedNextLine: string, range: vscode.Range): vscod
 }
 
 function shouldSkipCompletions(line: string): boolean {
-    return /\S\s|\/\/|\/\*/.test(line.replace("Consideration:", ""));
+    return /\S\s|\/\/|\/\*/.test(line.replace("Consideration:", "")) || line.startsWith("#");
 }
 
 function getTrimmedNextLine(document: vscode.TextDocument, position: vscode.Position): string {
@@ -162,8 +221,8 @@ class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
         const trimmedNextLine = getTrimmedNextLine(document, position);
         const range = document.lineAt(position.line).range.with({ start: rangeStart });
         return [
-            ...makeCompletionList(trimmedNextLine, range),
-            ...makeCompletionItems("Consideration", !line.includes("Consideration:"), trimmedNextLine, range),
+            ...makeCompletionList(document, trimmedNextLine, range),
+            ...makeCompletionItems(document, "Consideration", !line.includes("Consideration:"), trimmedNextLine, range),
         ];
     }
 }
@@ -186,13 +245,13 @@ class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
 
         const text = document.getText(wordRange);
         const label = `${this.translation}: ${text}`;
-        const patternInfo = registry[this.translation];
+        const patternInfo = getFromRegistry(document, this.translation)!;
         const trimmedNextLine = getTrimmedNextLine(document, position);
         const range = wordRange.with({ end: document.lineAt(position.line).range.end });
 
         return [
             {
-                ...makeCompletionItem(label, false, trimmedNextLine, range, patternInfo),
+                ...makeCompletionItem(document, label, false, trimmedNextLine, range, patternInfo),
                 kind: undefined,
                 preselect: true,
                 filterText: text,
@@ -223,7 +282,14 @@ class ConsiderationCompletionItemProvider implements vscode.CompletionItemProvid
 
         return [
             {
-                ...makeCompletionItem(label, isSingle, trimmedNextLine, range, registry["Consideration"]),
+                ...makeCompletionItem(
+                    document,
+                    label,
+                    isSingle,
+                    trimmedNextLine,
+                    range,
+                    defaultRegistry["Consideration"],
+                ),
                 kind: vscode.CompletionItemKind.Snippet,
                 preselect: true,
                 filterText: text,
@@ -241,18 +307,10 @@ class PatternHoverProvider implements vscode.HoverProvider {
         const range = document.getWordRangeAtPosition(position) ?? document.getWordRangeAtPosition(position, /[{}]/);
         if (range === undefined) return;
 
-        const translation = document
-            .getText(range)
-            .replace("{", "Introspection")
-            .replace("}", "Retrospection")
-            .replace(
-                /(?<=Bookkeeper's Gambit):\s*[v-]+|(?<=Numerical Reflection):\s*-?[0-9]+|(?<=Consideration):.*/,
-                "",
-            )
-            .trim();
-        if (!(translation in registry)) return;
+        const translation = prepareTranslation(document.getText(range));
+        if (!isInRegistry(translation)) return;
 
-        const patternInfo = registry[translation];
+        const patternInfo = getFromRegistry(document, translation)!;
         const { args } = patternInfo;
 
         return {
@@ -264,8 +322,122 @@ class PatternHoverProvider implements vscode.HoverProvider {
     }
 }
 
+// ew.
+const patternRe =
+    /(?<=^\s*Consideration:\s*)(?!\/\/|\/\*)[a-zA-Z0-9+\-\./][a-zA-Z0-9:'+\-\./ ]*(?!\*)|(?<=^\s*)Consideration:?|(?<=^\s*)(?!\/\/)[a-zA-Z0-9:'+\-\./][a-zA-Z0-9:'+\-\./ ]*?(?=\/\/|\/\*)|(?<=^\s*)(?!\/\/|\/\*)[a-zA-Z0-9+\-\./][a-zA-Z0-9:'+\-\./ ]*/g;
+const defineRe = /^(#define[ \t]+)(?=[^ \t])([^=]+?)[ \t]*(?:=[ \t]*(?=[^ \t])(.+?)[ \t]*)?(?:\/\/|\/\*|$)/;
+
+function refreshDiagnostics(
+    document: vscode.TextDocument,
+    patternCollection: vscode.DiagnosticCollection,
+    directiveCollection: vscode.DiagnosticCollection,
+): void {
+    if (!enableDiagnostics) return;
+
+    const patternDiagnostics: vscode.Diagnostic[] = [];
+    const directiveDiagnostics: vscode.Diagnostic[] = [];
+
+    const newMacroRegistry: Registry<MacroPatternInfo> = {};
+
+    let inComment = false;
+
+    for (let lineIndex = 0; lineIndex < document.lineCount; lineIndex++) {
+        const line = document.lineAt(lineIndex);
+
+        if (!inComment) {
+            // pattern diagnostics
+            for (const match of line.text.matchAll(patternRe)) {
+                const translation = prepareTranslation(match[0]);
+                if (!isInRegistry(translation)) {
+                    const start = new vscode.Position(lineIndex, match.index!);
+                    const end = start.translate({ characterDelta: translation.length });
+
+                    const diagnostic = new vscode.Diagnostic(
+                        new vscode.Range(start, end),
+                        `Unknown pattern: "${translation}".`,
+                        vscode.DiagnosticSeverity.Warning,
+                    );
+                    patternDiagnostics.push(diagnostic);
+                }
+            }
+
+            // #define diagnostics
+            if (/^#define([^a-zA-Z]|$)/.test(line.text)) {
+                const match = defineRe.exec(line.text);
+                let diagnostic: vscode.Diagnostic | undefined;
+
+                if (match == null) {
+                    diagnostic = new vscode.Diagnostic(
+                        line.range,
+                        "Malformed #define directive.",
+                        vscode.DiagnosticSeverity.Error,
+                    );
+                } else {
+                    const nameStart = new vscode.Position(lineIndex, match[1].length);
+                    const nameEnd = nameStart.translate({ characterDelta: match[2].length });
+
+                    if (isInDefaultRegistry(prepareTranslation(match[2]))) {
+                        diagnostic = new vscode.Diagnostic(
+                            new vscode.Range(nameStart, nameEnd),
+                            `Pattern "${match[2]}" already exists.`,
+                            vscode.DiagnosticSeverity.Error,
+                        );
+                    } else if (isInMacroRegistry(match[2], newMacroRegistry)) {
+                        diagnostic = new vscode.Diagnostic(
+                            new vscode.Range(nameStart, nameEnd),
+                            `Pattern "${match[2]}" is defined in a previous #define directive.`,
+                            vscode.DiagnosticSeverity.Error,
+                        );
+                    } else {
+                        newMacroRegistry[match[2]] = new MacroPatternInfo(match[3]?.replace("->", "→"));
+                    }
+                }
+
+                if (diagnostic) directiveDiagnostics.push(diagnostic);
+            }
+
+            if (/\/\*((?!\*\/).)*$/.test(line.text)) {
+                inComment = true;
+            }
+        } else if (/\*\/((?!\/\*).)*$/.test(line.text)) {
+            inComment = false;
+        }
+    }
+
+    patternCollection.set(document.uri, patternDiagnostics);
+    directiveCollection.set(document.uri, directiveDiagnostics);
+
+    macroRegistry.set(document.uri, newMacroRegistry);
+}
+
+class DiagnosticsProvider implements vscode.DocumentLinkProvider {
+    constructor(
+        public patternCollection: vscode.DiagnosticCollection,
+        public directiveCollection: vscode.DiagnosticCollection,
+    ) {}
+
+    provideDocumentLinks(
+        document: vscode.TextDocument,
+        token: vscode.CancellationToken,
+    ): vscode.ProviderResult<vscode.DocumentLink[]> {
+        refreshDiagnostics(document, this.patternCollection, this.directiveCollection);
+        return [];
+    }
+}
+
 export function activate(context: vscode.ExtensionContext) {
+    updateConfiguration();
+
+    const patternCollection = vscode.languages.createDiagnosticCollection("hex-casting.patterns");
+    const directiveCollection = vscode.languages.createDiagnosticCollection("hex-casting.directives");
+
+    let document: vscode.TextDocument | undefined;
+    if ((document = vscode.window.activeTextEditor?.document)) {
+        refreshDiagnostics(document, patternCollection, directiveCollection);
+    }
+
     context.subscriptions.push(
+        // completions
         vscode.languages.registerCompletionItemProvider(
             selector,
             new PatternCompletionItemProvider(),
@@ -282,11 +454,38 @@ export function activate(context: vscode.ExtensionContext) {
             ..."v-",
         ),
         vscode.languages.registerCompletionItemProvider(selector, new ConsiderationCompletionItemProvider(), "\\"),
+
+        // hover
         vscode.languages.registerHoverProvider(selector, new PatternHoverProvider()),
+
+        // configuration
         vscode.workspace.onDidChangeConfiguration((e) => {
-            if (e.affectsConfiguration("hex-casting.appendNewline")) {
-                appendNewline = vscode.workspace.getConfiguration(rootSection).get("appendNewline")!;
+            if (e.affectsConfiguration("hex-casting")) {
+                updateConfiguration();
+
+                if (!enableDiagnostics) {
+                    patternCollection.clear();
+                    directiveCollection.clear();
+                }
             }
+        }),
+
+        // diagnostics
+        patternCollection,
+        directiveCollection,
+        vscode.window.onDidChangeActiveTextEditor((editor) => {
+            if (editor && vscode.languages.match(selector, editor.document)) {
+                refreshDiagnostics(editor.document, patternCollection, directiveCollection);
+            }
+        }),
+        // because onDidChangeTextDocument fires way too often
+        vscode.languages.registerDocumentLinkProvider(
+            selector,
+            new DiagnosticsProvider(patternCollection, directiveCollection),
+        ),
+        vscode.workspace.onDidCloseTextDocument((document) => {
+            patternCollection.delete(document.uri);
+            directiveCollection.delete(document.uri);
         }),
     );
 }
