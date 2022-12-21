@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import untypedRegistry from "./data/registry.json";
+import untypedShorthandLookup from "./data/shorthand.json";
 
 interface PatternInfo {
     name?: string;
@@ -35,6 +36,7 @@ class MacroPatternInfo implements PatternInfo {
 
 type AppendNewline = "always" | "auto" | "never";
 type Registry<T extends PatternInfo> = { [translation: string]: T };
+type ShorthandLookup = { [shorthand: string]: string };
 
 const rootSection = "hex-casting";
 const output = vscode.window.createOutputChannel("Hex Casting");
@@ -50,6 +52,13 @@ const themePaths = {
     [vscode.ColorThemeKind.HighContrastLight]: "light/",
     [vscode.ColorThemeKind.Light]: "light/",
 };
+
+const shorthandLookup: ShorthandLookup = untypedShorthandLookup;
+for (const [translation, pattern] of Object.entries(defaultRegistry)) {
+    if (!Object.prototype.hasOwnProperty.call(shorthandLookup, pattern.name)) {
+        shorthandLookup[pattern.name] = translation;
+    }
+}
 
 let appendNewline: AppendNewline;
 let enableDiagnostics: boolean;
@@ -112,10 +121,12 @@ function getInsertTextSuffix(hasParam: boolean, trimmedNextLine: string): string
 
 function prepareTranslation(text: string): string {
     return text
-        .replace("{", "Introspection")
-        .replace("}", "Retrospection")
-        .replace(/(?<=Bookkeeper's Gambit):\s*[v-]+|(?<=Numerical Reflection):\s*-?[0-9]+|(?<=Consideration):.*/, "")
-        .trim();
+        .replace(/{/g, "Introspection")
+        .replace(/}/g, "Retrospection")
+        .replace(
+            /(?<=Bookkeeper's Gambit):\s*[v-]+|(?<=Numerical Reflection):\s*-?(?:\d*\.\d*|\d+)|(?<=Consideration):.*/g,
+            "",
+        );
 }
 
 function isInDefaultRegistry(translation: string): boolean {
@@ -203,7 +214,7 @@ function makeCompletionList(
 }
 
 function shouldSkipCompletions(line: string): boolean {
-    return /\S\s|\/\/|\/\*/.test(line.replace("Consideration:", "")) || line.startsWith("#");
+    return /\S\s|\/\/|\/\*/.test(line.replace(/Consideration:/g, "")) || line.startsWith("#");
 }
 
 function getTrimmedNextLine(document: vscode.TextDocument, position: vscode.Position): string {
@@ -211,12 +222,97 @@ function getTrimmedNextLine(document: vscode.TextDocument, position: vscode.Posi
     return document.lineCount > nextLineNum ? document.lineAt(nextLineNum).text.trim() : "";
 }
 
+function toTitleCase(text: string): string {
+    return text
+        .split(/\s+/)
+        .map((s) => s.charAt(0).toUpperCase() + s.substring(1).toLowerCase())
+        .join(" ");
+}
+
+const suffixes: [RegExp, string][] = [
+    [/(?<= )(ref|refl)(?= |$)/i, "Reflection"],
+    [/(?<= )(pur|prfn|prf)(?= |$)/i, "Purification"],
+    [/(?<= )(dist|distill)(?= |$)/i, "Distillation"],
+    [/(?<= )(ex|exalt)(?= |$)/i, "Exaltation"],
+    [/(?<= )(dec|decomp)(?= |$)/i, "Decomposition"],
+    [/(?<= )(dis|disint)(?= |$)/i, "Disintegration"],
+    [/(?<= )gam(?= |$)/i, "Gambit"],
+];
+
+const plurals: [string | RegExp, string][] = [
+    ["", ""],
+    [/(?<=^\S+)(s?)(?= |$)/, "'s"],
+    [/(?<=^\S+)(s)(?= |$)/, "s'"],
+];
+
+function tryLookupShorthand(
+    document: vscode.TextDocument,
+    pattern: string,
+    restOfLine: string,
+): string | string[] | undefined {
+    if (isInRegistry(document, prepareTranslation(pattern))) return;
+
+    let prefix = "";
+    let formattedPattern = pattern;
+    if (/^consideration +[^ ]+/i.test(pattern)) {
+        prefix = "Consideration: ";
+        formattedPattern = pattern.replace(/^consideration +/, "");
+    } else if (pattern.toLowerCase() == "consideration" && /^ *[{}]/.test(restOfLine)) {
+        return "Consideration:";
+    }
+
+    let replacement;
+    if ((replacement = shorthandLookup[formattedPattern])) return prefix + replacement;
+
+    formattedPattern = formattedPattern
+        .replace(/_/g, " ")
+        .replace(/^(-?(?:\d*\.\d*|\d+))$/, "Numerical Reflection: $1")
+        .replace(/^(?:book|bookkeeper|mask) *([v\-]+)$/i, "Bookkeeper's Gambit: $1");
+    if (isInRegistry(document, prepareTranslation(formattedPattern))) return prefix + formattedPattern;
+
+    formattedPattern = toTitleCase(formattedPattern);
+    if (isInRegistry(document, prepareTranslation(formattedPattern))) return prefix + formattedPattern;
+
+    // for for for for for for for for for for for for
+    const foundPatterns = new Set<string>();
+    for (const [suffixSearch, suffixReplace] of suffixes) {
+        for (const [pluralSearch, pluralReplace] of plurals) {
+            for (const two of ["", " II"]) {
+                for (const colon of ["", ":"]) {
+                    let moreFormattedPattern = formattedPattern
+                        .replace(suffixSearch, suffixReplace + colon)
+                        .replace(pluralSearch, pluralReplace);
+                    if (isInRegistry(document, moreFormattedPattern + two))
+                        foundPatterns.add(prefix + moreFormattedPattern + two);
+
+                    moreFormattedPattern += " " + suffixReplace + colon;
+                    if (isInRegistry(document, moreFormattedPattern + two))
+                        foundPatterns.add(prefix + moreFormattedPattern + two);
+                }
+            }
+        }
+    }
+
+    const results = Array.from(foundPatterns);
+    results.sort();
+
+    if (!results.length) return;
+    if (results.length == 1) return results[0];
+    return results;
+}
+
+function getRestOfLine(document: vscode.TextDocument, start: vscode.Position, offset: number): string {
+    return document.getText(
+        document.lineAt(start.line).range.with({ start: start.translate({ characterDelta: offset }) }),
+    );
+}
+
 class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
     public provideCompletionItems(
         document: vscode.TextDocument,
         position: vscode.Position,
-        token: vscode.CancellationToken,
-        context: vscode.CompletionContext,
+        _token: vscode.CancellationToken,
+        _context: vscode.CompletionContext,
     ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
         const lineStart = position.with({ character: 0 });
         const rangeStart = document.getWordRangeAtPosition(position)?.start ?? position;
@@ -238,8 +334,8 @@ class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
     public provideCompletionItems(
         document: vscode.TextDocument,
         position: vscode.Position,
-        token: vscode.CancellationToken,
-        context: vscode.CompletionContext,
+        _token: vscode.CancellationToken,
+        _context: vscode.CompletionContext,
     ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
         const wordRange = document.getWordRangeAtPosition(position, this.regex);
         if (wordRange === undefined) return;
@@ -269,8 +365,8 @@ class ConsiderationCompletionItemProvider implements vscode.CompletionItemProvid
     public provideCompletionItems(
         document: vscode.TextDocument,
         position: vscode.Position,
-        token: vscode.CancellationToken,
-        context: vscode.CompletionContext,
+        _token: vscode.CancellationToken,
+        _context: vscode.CompletionContext,
     ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
         const wordRange = document.getWordRangeAtPosition(position, /(?<=^\s*)(Consideration: \\$|\\\\?)/);
         if (wordRange === undefined) return;
@@ -307,7 +403,7 @@ class PatternHoverProvider implements vscode.HoverProvider {
     public provideHover(
         document: vscode.TextDocument,
         position: vscode.Position,
-        token: vscode.CancellationToken,
+        _token: vscode.CancellationToken,
     ): vscode.ProviderResult<vscode.Hover> {
         const range = document.getWordRangeAtPosition(position) ?? document.getWordRangeAtPosition(position, /[{}]/);
         if (range === undefined) return;
@@ -329,8 +425,21 @@ class PatternHoverProvider implements vscode.HoverProvider {
 
 // ew.
 const patternRe =
-    /(?<=^\s*Consideration:\s*)(?!\/\/|\/\*)[a-zA-Z0-9+\-\./][a-zA-Z0-9:'+\-\./ ]*(?!\*)|(?<=^\s*)Consideration:?|(?<=^\s*)(?!\/\/)[a-zA-Z0-9:'+\-\./][a-zA-Z0-9:'+\-\./ ]*?(?=\/\/|\/\*)|(?<=^\s*)(?!\/\/|\/\*)[a-zA-Z0-9+\-\./][a-zA-Z0-9:'+\-\./ ]*/g;
+    /^(?<prefix>[ \t]*)(?<escape>Consideration: *)?(?!\/\/|\/\*| )(?<pattern>[a-zA-Z0-9:'+\-\./ _]+?)(?= *(?:\/\/|\/\*|{|}|$))/;
 const defineRe = /^(#define[ \t]+)(?=[^ \t])([^=]+?)[ \t]*(?:=[ \t]*(?=[^ \t])(.+?)[ \t]*)?(?:\/\/|\/\*|$)/;
+
+/**
+ * @returns [prefix, pattern, isEscaped]
+ */
+function getPatternFromLine(text: string): [string, string, boolean] | [undefined, undefined, undefined] {
+    const groups = patternRe.exec(text.trimEnd())?.groups;
+    return groups
+        ? [groups.prefix + (groups.escape ?? ""), groups.pattern, !!groups.escape]
+        : [undefined, undefined, undefined];
+}
+
+const patternDiagnosticsSource = "hex-casting.pattern";
+const directiveDiagnosticsSource = "hex-casting.directive";
 
 function refreshDiagnostics(
     document: vscode.TextDocument,
@@ -351,23 +460,23 @@ function refreshDiagnostics(
 
         if (!inComment) {
             // pattern diagnostics
-            for (const match of line.text.matchAll(patternRe)) {
-                const translation = prepareTranslation(match[0]);
-                if (!isInRegistry(document, translation)) {
-                    const start = new vscode.Position(lineIndex, match.index!);
-                    const end = start.translate({ characterDelta: translation.length });
+            const [prefix, pattern] = getPatternFromLine(line.text);
+            if (pattern != null && !isInRegistry(document, prepareTranslation(pattern))) {
+                const start = new vscode.Position(lineIndex, prefix.length);
+                const end = start.translate({ characterDelta: pattern.length });
 
-                    const diagnostic = new vscode.Diagnostic(
-                        new vscode.Range(start, end),
-                        `Unknown pattern: "${translation}".`,
-                        vscode.DiagnosticSeverity.Warning,
-                    );
-                    patternDiagnostics.push(diagnostic);
-                }
+                const diagnostic = new vscode.Diagnostic(
+                    new vscode.Range(start, end),
+                    `Unknown pattern: "${pattern}".`,
+                    vscode.DiagnosticSeverity.Warning,
+                );
+                diagnostic.source = patternDiagnosticsSource;
+                patternDiagnostics.push(diagnostic);
             }
 
             // #define diagnostics
             if (/^#define([^a-zA-Z]|$)/.test(line.text)) {
+                defineRe.lastIndex = 0;
                 const match = defineRe.exec(line.text);
                 let diagnostic: vscode.Diagnostic | undefined;
 
@@ -394,11 +503,14 @@ function refreshDiagnostics(
                             vscode.DiagnosticSeverity.Error,
                         );
                     } else {
-                        newMacroRegistry[match[2]] = new MacroPatternInfo(match[3]?.replace("->", "→"));
+                        newMacroRegistry[match[2]] = new MacroPatternInfo(match[3]?.replace(/\-\>/g, "→"));
                     }
                 }
 
-                if (diagnostic) directiveDiagnostics.push(diagnostic);
+                if (diagnostic) {
+                    diagnostic.source = directiveDiagnosticsSource;
+                    directiveDiagnostics.push(diagnostic);
+                }
             }
 
             if (/\/\*((?!\*\/).)*$/.test(line.text)) {
@@ -434,7 +546,7 @@ class MacroInlayHintsProvider implements vscode.InlayHintsProvider {
     provideInlayHints(
         document: vscode.TextDocument,
         range: vscode.Range,
-        token: vscode.CancellationToken,
+        _token: vscode.CancellationToken,
     ): vscode.ProviderResult<vscode.InlayHint[]> {
         const lines = document.getText(range).split("\n");
         const hints = [];
@@ -442,22 +554,113 @@ class MacroInlayHintsProvider implements vscode.InlayHintsProvider {
         let inComment = false;
 
         for (const [i, line] of lines.entries()) {
-            for (const match of line.matchAll(patternRe)) {
-                if (isInMacroRegistry(document, match[0])) {
-                    const line = range.start.line + i;
-                    const character = (i == 0 ? range.start.character : 0) + match.index! + match[0].length;
+            const [prefix, pattern] = getPatternFromLine(line);
+            if (pattern != null && isInMacroRegistry(document, pattern)) {
+                const line = range.start.line + i;
+                const character = (i == 0 ? range.start.character : 0) + prefix.length + pattern.length;
 
-                    const hint = new vscode.InlayHint(
-                        new vscode.Position(line, character),
-                        " (macro)",
-                        vscode.InlayHintKind.Type,
-                    );
-                    hints.push(hint);
-                }
+                const hint = new vscode.InlayHint(
+                    new vscode.Position(line, character),
+                    " (macro)",
+                    vscode.InlayHintKind.Type,
+                );
+                hints.push(hint);
             }
         }
 
         return hints;
+    }
+}
+
+class ExpandShorthandProvider implements vscode.CodeActionProvider {
+    static metadata: vscode.CodeActionProviderMetadata = {
+        providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
+    };
+
+    makeFix(document: vscode.TextDocument, range: vscode.Range, replacement: string): vscode.CodeAction {
+        const fix: vscode.CodeAction = {
+            title: `Replace with "${replacement}"`,
+            kind: vscode.CodeActionKind.QuickFix,
+            edit: new vscode.WorkspaceEdit(),
+        };
+        fix.edit!.replace(document.uri, range, replacement);
+        return fix;
+    }
+
+    provideCodeActions(
+        document: vscode.TextDocument,
+        range: vscode.Range | vscode.Selection,
+        _context: vscode.CodeActionContext,
+        _token: vscode.CancellationToken,
+    ): vscode.ProviderResult<(vscode.CodeAction | vscode.Command)[]> {
+        if (range.isEmpty) range = document.getWordRangeAtPosition(range.start) ?? range;
+        if (range.isEmpty) return;
+
+        const text = document.getText(range);
+        const [prefix, pattern] = getPatternFromLine(text);
+        let result;
+        if (
+            pattern != null &&
+            !isInRegistry(document, prepareTranslation(pattern)) &&
+            (result = tryLookupShorthand(
+                document,
+                pattern,
+                getRestOfLine(document, range.start, prefix.length + pattern.length),
+            ))
+        ) {
+            const start = range.start.translate({ characterDelta: prefix.length });
+            const end = start.translate({ characterDelta: pattern.length });
+            const fixRange = new vscode.Range(start, end);
+
+            if (Array.isArray(result)) {
+                return result.map((replacement) => this.makeFix(document, fixRange, replacement));
+            } else {
+                return [this.makeFix(document, fixRange, result)];
+            }
+        }
+    }
+}
+
+class ExpandAllShorthandProvider implements vscode.CodeActionProvider {
+    static metadata: vscode.CodeActionProviderMetadata = {
+        providedCodeActionKinds: [vscode.CodeActionKind.SourceFixAll],
+    };
+
+    provideCodeActions(
+        document: vscode.TextDocument,
+        _range: vscode.Range | vscode.Selection,
+        _context: vscode.CodeActionContext,
+        _token: vscode.CancellationToken,
+    ): vscode.ProviderResult<(vscode.CodeAction | vscode.Command)[]> {
+        const diagnostics = vscode.languages
+            .getDiagnostics(document.uri)
+            .filter((diagnostic) => diagnostic.source === patternDiagnosticsSource);
+
+        const fix: vscode.CodeAction = {
+            title: "Replace all shorthand in document with full patterns",
+            kind: vscode.CodeActionKind.SourceFixAll,
+            edit: new vscode.WorkspaceEdit(),
+            diagnostics: [],
+        };
+
+        for (const diagnostic of diagnostics) {
+            const [prefix, pattern] = getPatternFromLine(document.getText(diagnostic.range));
+            let result;
+            if (
+                pattern != null &&
+                (result = tryLookupShorthand(
+                    document,
+                    pattern,
+                    getRestOfLine(document, diagnostic.range.start, prefix.length + pattern.length),
+                )) &&
+                !Array.isArray(result)
+            ) {
+                fix.edit!.replace(document.uri, diagnostic.range, result);
+                fix.diagnostics!.push(diagnostic);
+            }
+        }
+
+        if (fix.diagnostics!.length) return [fix];
     }
 }
 
@@ -526,6 +729,18 @@ export function activate(context: vscode.ExtensionContext) {
             patternCollection.delete(document.uri);
             directiveCollection.delete(document.uri);
         }),
+
+        // code actions
+        vscode.languages.registerCodeActionsProvider(
+            selector,
+            new ExpandShorthandProvider(),
+            ExpandShorthandProvider.metadata,
+        ),
+        vscode.languages.registerCodeActionsProvider(
+            selector,
+            new ExpandAllShorthandProvider(),
+            ExpandAllShorthandProvider.metadata,
+        ),
     );
 }
 

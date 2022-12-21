@@ -32,9 +32,9 @@
             }
         }
     ],
-    "wordPattern": "((?<=^\\s*Consideration:\\s*)(?!//|/\\*)[a-zA-Z0-9+\\-\\./][a-zA-Z0-9:'+\\-\\./ ]*(?!\\*)|(?<=^\\s*)Consideration:?|(?<=^\\s*)(?!//)[a-zA-Z0-9:'+\\-\\./][a-zA-Z0-9:'+\\-\\./ ]*?(?=//|/\\*)|(?<=^\\s*)(?!//|/\\*)[a-zA-Z0-9+\\-\\./][a-zA-Z0-9:'+\\-\\./ ]*|#\\S+)",
+    "wordPattern": "(?<=^\\s*)Consideration:|(?<=^\\s*(?:Consideration: )?)(?!//|/\\*| )[a-zA-Z0-9:'+\\-./ _]+?(?= *(?://|/\\*|$))",
     "indentationRules": {
-        "increaseIndentPattern": "(?<!/\\*((?!\\*/)(.|\n))*|//.*)[\\[{]",
-        "decreaseIndentPattern": "(?<!/\\*((?!\\*/)(.|\n))*|//.*)[\\]}]"
+        "increaseIndentPattern": "(?<!//.*)[\\[{]",
+        "decreaseIndentPattern": "(?<!//.*)[\\]}]"
     }
 }

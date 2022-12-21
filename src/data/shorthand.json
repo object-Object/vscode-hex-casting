@@ -1,0 +1,13 @@
+{
+    "EAST": "Bookkeeper's Gambit: -",
+    "EAST w": "Bookkeeper's Gambit: --",
+    "EAST ww": "Bookkeeper's Gambit: ---",
+    "read_ravenmind": "Muninn's Reflection",
+    "write_ravenmind": "Huginn's Gambit",
+    "vec_plus_x": "Vector Reflection +X",
+    "vec_minus_x": "Vector Reflection -X",
+    "vec_plus_y": "Vector Reflection +Y",
+    "vec_minus_y": "Vector Reflection -Y",
+    "vec_plus_z": "Vector Reflection +Z",
+    "vec_minus_z": "Vector Reflection -Z"
+}

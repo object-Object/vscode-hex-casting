@@ -2,6 +2,12 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.0.12] - 2022-12-21
+
+### Additions
+
+- Add code actions to convert shorthand / internal names to full patterns
+
 ## [0.0.11] - 2022-12-19
 
 ### Additions
