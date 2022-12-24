@@ -2,6 +2,12 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [unreleased]
+
+### Fixes
+
+- Fix diagnostics being provided for non-Hex files if the editor was reloaded with a Hex and a non-Hex file in split view
+
 ## [0.0.12] - 2022-12-21
 
 ### Additions

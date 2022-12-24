@@ -671,7 +671,7 @@ export function activate(context: vscode.ExtensionContext) {
     const directiveCollection = vscode.languages.createDiagnosticCollection("hex-casting.directives");
 
     let document: vscode.TextDocument | undefined;
-    if ((document = vscode.window.activeTextEditor?.document)) {
+    if ((document = vscode.window.activeTextEditor?.document) && vscode.languages.match(selector, document)) {
         refreshDiagnostics(document, patternCollection, directiveCollection);
     }
 
