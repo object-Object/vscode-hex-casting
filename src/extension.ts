@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import untypedRegistry from "./data/registry.json";
 import untypedShorthandLookup from "./data/shorthand.json";
+import showInputBox from "./showInputBox";
 
 interface PatternInfo {
     name?: string;
@@ -20,16 +21,16 @@ interface DefaultPatternInfo extends PatternInfo {
     name: string;
 }
 
+type Direction = "EAST" | "SOUTH_EAST" | "SOUTH_WEST" | "WEST" | "NORTH_WEST" | "NORTH_EAST";
+
 class MacroPatternInfo implements PatternInfo {
     public args: string | null;
 
     public modName = "macro";
     public image = null;
-    public direction = null;
-    public pattern = null;
     public url = null;
 
-    constructor(args?: string) {
+    constructor(public direction: Direction, public pattern: string, args?: string) {
         this.args = args ?? null;
     }
 }
@@ -102,7 +103,7 @@ function makeDocumentation(
         result = result.appendMarkdown(`\n\n<img src="${filename}" alt="Stroke order for ${translation}" ${style}/>`);
     }
 
-    if (direction != null && pattern != null) result = result.appendMarkdown(`\n\n\`${direction} ${pattern}\``);
+    if (direction != null) result = result.appendMarkdown(`\n\n\`${direction}${pattern ? " " + pattern : ""}\``);
 
     return result;
 }
@@ -121,12 +122,34 @@ function getInsertTextSuffix(hasParam: boolean, trimmedNextLine: string): string
 
 function prepareTranslation(text: string): string {
     return text
-        .replace(/{/g, "Introspection")
-        .replace(/}/g, "Retrospection")
+        .replace(/[{\[]/g, "Introspection")
+        .replace(/[}\]]/g, "Retrospection")
         .replace(
             /(?<=Bookkeeper's Gambit):\s*[v-]+|(?<=Numerical Reflection):\s*-?(?:\d*\.\d*|\d+)|(?<=Consideration):.*/g,
             "",
         );
+}
+
+function shortenDirection(rawDirection: string): string {
+    return rawDirection
+        .toLowerCase()
+        .replace(/[_\-]/g, "")
+        .replace("north", "n")
+        .replace("south", "s")
+        .replace("west", "w")
+        .replace("east", "e");
+}
+
+function prepareDirection(rawDirection: string): Direction | undefined {
+    const lookup: { [key: string]: Direction | undefined } = {
+        e: "EAST",
+        se: "SOUTH_EAST",
+        sw: "SOUTH_WEST",
+        w: "WEST",
+        nw: "NORTH_WEST",
+        ne: "NORTH_EAST",
+    };
+    return lookup[shortenDirection(rawDirection)];
 }
 
 function isInDefaultRegistry(translation: string): boolean {
@@ -425,17 +448,29 @@ class PatternHoverProvider implements vscode.HoverProvider {
 
 // ew.
 const patternRe =
-    /^(?<prefix>[ \t]*)(?<escape>Consideration: *)?(?!\/\/|\/\*| )(?<pattern>[a-zA-Z0-9:'+\-\./ _]+?)(?= *(?:\/\/|\/\*|{|}|$))/;
-const defineRe = /^(#define[ \t]+)(?=[^ \t])([^=]+?)[ \t]*(?:=[ \t]*(?=[^ \t])(.+?)[ \t]*)?(?:\/\/|\/\*|$)/;
+    /^(?<prefix>[ \t]*)(?<escape>Consideration: *)?(?!\/\/|\/\*| )(?<pattern>(?:[a-zA-Z0-9:'+\-\./ _]+?|[{}\[\]]))(?= *(?:\/\/|\/\*|{|}|$))/gm;
+const defineRe =
+    /^(?<directionPrefix>(?<directive>#define[ \t]+)(?=[^ \t])(?<translation>[^(\n]+?)[ \t]*\([ \t]*)(?<direction>[a-zA-Z_\-]+)(?:[ \t]+(?<pattern>[aqwedAQWED]+))?[ \t]*\)[ \t]*(?:=[ \t]*(?=[^ \t])(?<args>.+?)[ \t]*)?(?:\/\/|\/\*|$)/;
 
-/**
- * @returns [prefix, pattern, isEscaped]
- */
-function getPatternFromLine(text: string): [string, string, boolean] | [undefined, undefined, undefined] {
+interface PatternMatch {
+    prefix: string;
+    pattern: string;
+    isEscaped: boolean;
+}
+
+function getPatternFromLine(text: string): PatternMatch | undefined {
+    patternRe.lastIndex = 0;
     const groups = patternRe.exec(text.trimEnd())?.groups;
     return groups
-        ? [groups.prefix + (groups.escape ?? ""), groups.pattern, !!groups.escape]
-        : [undefined, undefined, undefined];
+        ? { prefix: groups.prefix + (groups.escape ?? ""), pattern: groups.pattern, isEscaped: !!groups.escape }
+        : undefined;
+}
+
+function getPatternsFromText(text: string): PatternMatch[] {
+    return text.split("\n").flatMap((line) => {
+        const match = getPatternFromLine(line);
+        return match ? [match] : [];
+    });
 }
 
 const patternDiagnosticsSource = "hex-casting.pattern";
@@ -460,56 +495,82 @@ function refreshDiagnostics(
 
         if (!inComment) {
             // pattern diagnostics
-            const [prefix, pattern] = getPatternFromLine(line.text);
-            if (pattern != null && !isInRegistry(document, prepareTranslation(pattern))) {
-                const start = new vscode.Position(lineIndex, prefix.length);
-                const end = start.translate({ characterDelta: pattern.length });
+            const match = getPatternFromLine(line.text);
+            if (match != null && !isInRegistry(document, prepareTranslation(match.pattern))) {
+                const start = new vscode.Position(lineIndex, match.prefix.length);
+                const end = start.translate({ characterDelta: match.pattern.length });
 
-                const diagnostic = new vscode.Diagnostic(
-                    new vscode.Range(start, end),
-                    `Unknown pattern: "${pattern}".`,
-                    vscode.DiagnosticSeverity.Warning,
-                );
-                diagnostic.source = patternDiagnosticsSource;
-                patternDiagnostics.push(diagnostic);
+                patternDiagnostics.push({
+                    range: new vscode.Range(start, end),
+                    message: `Unknown pattern: "${match.pattern}".`,
+                    severity: vscode.DiagnosticSeverity.Warning,
+                    source: patternDiagnosticsSource,
+                });
             }
 
             // #define diagnostics
             if (/^#define([^a-zA-Z]|$)/.test(line.text)) {
-                defineRe.lastIndex = 0;
                 const match = defineRe.exec(line.text);
-                let diagnostic: vscode.Diagnostic | undefined;
 
                 if (match == null) {
-                    diagnostic = new vscode.Diagnostic(
-                        line.range,
-                        "Malformed #define directive.",
-                        vscode.DiagnosticSeverity.Error,
-                    );
+                    const cause = /[\(\)]/.test(line.text) ? "" : " (missing angle signature)";
+                    directiveDiagnostics.push({
+                        range: line.range,
+                        message: `Malformed #define directive${cause}.`,
+                        severity: vscode.DiagnosticSeverity.Error,
+                        source: directiveDiagnosticsSource,
+                    });
                 } else {
-                    const nameStart = new vscode.Position(lineIndex, match[1].length);
-                    const nameEnd = nameStart.translate({ characterDelta: match[2].length });
+                    const {
+                        directionPrefix,
+                        directive,
+                        translation,
+                        direction: rawDirection,
+                        pattern,
+                        args,
+                    } = match.groups as {
+                        [key: string]: string;
+                    } & { args: string | undefined };
 
-                    if (isInDefaultRegistry(prepareTranslation(match[2]))) {
-                        diagnostic = new vscode.Diagnostic(
-                            new vscode.Range(nameStart, nameEnd),
-                            `Pattern "${match[2]}" already exists.`,
-                            vscode.DiagnosticSeverity.Error,
-                        );
-                    } else if (isInMacroRegistry(document, match[2], newMacroRegistry)) {
-                        diagnostic = new vscode.Diagnostic(
-                            new vscode.Range(nameStart, nameEnd),
-                            `Pattern "${match[2]}" is defined in a previous #define directive.`,
-                            vscode.DiagnosticSeverity.Error,
-                        );
-                    } else {
-                        newMacroRegistry[match[2]] = new MacroPatternInfo(match[3]?.replace(/\-\>/g, "→"));
+                    const nameStart = new vscode.Position(lineIndex, directive.length);
+                    const nameEnd = nameStart.translate({ characterDelta: translation.length });
+                    const nameRange = new vscode.Range(nameStart, nameEnd);
+
+                    const directionStart = new vscode.Position(lineIndex, directionPrefix.length);
+                    const directionEnd = directionStart.translate({ characterDelta: rawDirection.length });
+                    const directionRange = new vscode.Range(directionStart, directionEnd);
+
+                    const direction = prepareDirection(rawDirection);
+                    if (!direction) {
+                        directiveDiagnostics.push({
+                            range: directionRange,
+                            message: `Invalid direction "${rawDirection}".`,
+                            severity: vscode.DiagnosticSeverity.Error,
+                            source: directiveDiagnosticsSource,
+                        });
                     }
-                }
 
-                if (diagnostic) {
-                    diagnostic.source = directiveDiagnosticsSource;
-                    directiveDiagnostics.push(diagnostic);
+                    if (isInDefaultRegistry(prepareTranslation(translation))) {
+                        directiveDiagnostics.push({
+                            range: nameRange,
+                            message: `Pattern "${translation}" already exists.`,
+                            severity: vscode.DiagnosticSeverity.Error,
+                            source: directiveDiagnosticsSource,
+                        });
+                    } else if (isInMacroRegistry(document, translation, newMacroRegistry)) {
+                        directiveDiagnostics.push({
+                            range: nameRange,
+                            message: `Pattern "${translation}" is defined in a previous #define directive.`,
+                            severity: vscode.DiagnosticSeverity.Error,
+                            source: directiveDiagnosticsSource,
+                        });
+                    } else if (direction) {
+                        newMacroRegistry[translation] = new MacroPatternInfo(
+                            direction,
+                            pattern,
+                            args?.replace(/\-\>/g, "→"),
+                        );
+                    }
                 }
             }
 
@@ -554,10 +615,10 @@ class MacroInlayHintsProvider implements vscode.InlayHintsProvider {
         let inComment = false;
 
         for (const [i, line] of lines.entries()) {
-            const [prefix, pattern] = getPatternFromLine(line);
-            if (pattern != null && isInMacroRegistry(document, pattern)) {
+            const match = getPatternFromLine(line);
+            if (match != null && isInMacroRegistry(document, match.pattern)) {
                 const line = range.start.line + i;
-                const character = (i == 0 ? range.start.character : 0) + prefix.length + pattern.length;
+                const character = (i == 0 ? range.start.character : 0) + match.prefix.length + match.pattern.length;
 
                 const hint = new vscode.InlayHint(
                     new vscode.Position(line, character),
@@ -597,19 +658,19 @@ class ExpandShorthandProvider implements vscode.CodeActionProvider {
         if (range.isEmpty) return;
 
         const text = document.getText(range);
-        const [prefix, pattern] = getPatternFromLine(text);
+        const match = getPatternFromLine(text);
         let result;
         if (
-            pattern != null &&
-            !isInRegistry(document, prepareTranslation(pattern)) &&
+            match != null &&
+            !isInRegistry(document, prepareTranslation(match.pattern)) &&
             (result = tryLookupShorthand(
                 document,
-                pattern,
-                getRestOfLine(document, range.start, prefix.length + pattern.length),
+                match.pattern,
+                getRestOfLine(document, range.start, match.prefix.length + match.pattern.length),
             ))
         ) {
-            const start = range.start.translate({ characterDelta: prefix.length });
-            const end = start.translate({ characterDelta: pattern.length });
+            const start = range.start.translate({ characterDelta: match.prefix.length });
+            const end = start.translate({ characterDelta: match.pattern.length });
             const fixRange = new vscode.Range(start, end);
 
             if (Array.isArray(result)) {
@@ -644,14 +705,14 @@ class ExpandAllShorthandProvider implements vscode.CodeActionProvider {
         };
 
         for (const diagnostic of diagnostics) {
-            const [prefix, pattern] = getPatternFromLine(document.getText(diagnostic.range));
+            const match = getPatternFromLine(document.getText(diagnostic.range));
             let result;
             if (
-                pattern != null &&
+                match != null &&
                 (result = tryLookupShorthand(
                     document,
-                    pattern,
-                    getRestOfLine(document, diagnostic.range.start, prefix.length + pattern.length),
+                    match.pattern,
+                    getRestOfLine(document, diagnostic.range.start, match.prefix.length + match.pattern.length),
                 )) &&
                 !Array.isArray(result)
             ) {
@@ -662,6 +723,175 @@ class ExpandAllShorthandProvider implements vscode.CodeActionProvider {
 
         if (fix.diagnostics!.length) return [fix];
     }
+}
+
+const bbCodeColors = ["orange", "yellow", "lightgreen", "cyan", "pink"];
+
+function getBBCodeColor(indent: number): string {
+    if (indent < 0) return "red";
+    if (indent == 0) return "#9966cc";
+    return bbCodeColors[(indent - 1) % bbCodeColors.length];
+}
+
+function generateBookkeeper(mask: string): { direction: Direction; pattern: string } {
+    let direction: Direction, pattern: string;
+    if (mask[0] == "v") {
+        direction = "SOUTH_EAST";
+        pattern = "a";
+    } else {
+        direction = "EAST";
+        pattern = "";
+    }
+
+    for (let i = 0; i < mask.length - 1; i++) {
+        const previous = mask[i];
+        const current = mask[i + 1];
+
+        switch (previous + current) {
+            case "--":
+                pattern += "w";
+                break;
+            case "-v":
+                pattern += "ea";
+                break;
+            case "v-":
+                pattern += "e";
+                break;
+            case "vv":
+                pattern += "da";
+                break;
+        }
+    }
+
+    return { direction, pattern };
+}
+
+function validateAngleSignature(value: string): string | undefined {
+    if (!value) return "Field is required.";
+}
+
+const numbers = new Map<number, { direction: Direction; pattern: string }>();
+
+async function copySelectionAsBBCodeCommand({ selection, document }: vscode.TextEditor): Promise<void> {
+    const diagnostics = vscode.languages
+        .getDiagnostics(document.uri)
+        .filter((diagnostic) => diagnostic.source === patternDiagnosticsSource && selection.contains(diagnostic.range));
+
+    if (diagnostics.length) {
+        vscode.window.showErrorMessage("Selection contains unknown patterns.");
+        return;
+    }
+
+    const patterns: (PatternInfo & { num?: number; translation: string })[] = [];
+    const unknownNumbers = new Set<number>();
+
+    for (const { pattern: translation, isEscaped } of getPatternsFromText(document.getText(selection))) {
+        const patternInfo = getFromRegistry(document, prepareTranslation(translation))!;
+        const param = /: (.+)/.exec(translation)?.[1];
+
+        if (isEscaped) {
+            patterns.push({
+                ...defaultRegistry["Consideration"],
+                translation: "Consideration",
+            });
+        }
+
+        switch (patternInfo.name) {
+            case "mask":
+                patterns.push({
+                    ...patternInfo,
+                    translation,
+                    ...generateBookkeeper(param!),
+                });
+                break;
+
+            case "number":
+                const num = parseFloat(param!);
+                patterns.push({
+                    ...patternInfo,
+                    translation,
+                    num,
+                });
+                if (!numbers.has(num)) unknownNumbers.add(num);
+                break;
+
+            default:
+                patterns.push({
+                    ...patternInfo,
+                    translation,
+                });
+        }
+    }
+
+    if (!patterns.length) {
+        vscode.window.showErrorMessage("Selection doesn't contain any patterns.");
+        return;
+    }
+
+    if (unknownNumbers.size) {
+        let step = 1;
+
+        for (const num of unknownNumbers.values()) {
+            const result = await showInputBox({
+                title: `Enter angle signature for Numerical Reflection: ${num}`,
+                step: step++,
+                totalSteps: unknownNumbers.size,
+                placeholder: "EAST aqwed",
+                valuePrefix: num >= 0 ? "SOUTH_EAST aqaa" : "NORTH_EAST dedd",
+                validate: validateAngleSignature,
+            });
+
+            if (!result) {
+                vscode.window.showErrorMessage("Cancelled.");
+                return;
+            }
+
+            const [rawDirection, pattern] = result.split(" ");
+            const direction = prepareDirection(rawDirection)!;
+            numbers.set(num, { direction, pattern });
+        }
+    }
+
+    let bbCode = `[pcolor=${getBBCodeColor(0)}]`;
+    let indent = 0;
+    let isEscaped = false;
+    let stopEscape = false;
+
+    for (const { name, translation, num, ...rest } of patterns) {
+        const { direction, pattern } = num != undefined ? numbers.get(num) ?? rest : rest;
+
+        // consider color
+        if (isEscaped) {
+            if (stopEscape) {
+                isEscaped = false;
+                stopEscape = false;
+            } else {
+                stopEscape = true;
+            }
+        }
+        if (name === "escape" && !isEscaped) isEscaped = true;
+        const color = isEscaped ? ` color=${getBBCodeColor(0)}` : "";
+
+        // retro color
+        if (name === "close_paren" && !isEscaped) bbCode += `[/pcolor][pcolor=${getBBCodeColor(--indent)}]`;
+
+        // the actual pattern
+        if (pattern != null && direction != null) {
+            bbCode += `[pat=${pattern!} dir=${shortenDirection(direction!)}${color}]`;
+        } else if (name != null) {
+            bbCode += `[pat=${name}${color}]`;
+        } else {
+            vscode.window.showErrorMessage(`Couldn't generate BBCode for "${translation}".`);
+            return;
+        }
+
+        // intro color
+        if (name === "open_paren" && !isEscaped) bbCode += `[/pcolor][pcolor=${getBBCodeColor(++indent)}]`;
+    }
+
+    bbCode += "[/pcolor]";
+    vscode.env.clipboard.writeText(bbCode);
+    vscode.window.showInformationMessage("Copied BBCode for selected patterns.");
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -741,6 +971,9 @@ export function activate(context: vscode.ExtensionContext) {
             new ExpandAllShorthandProvider(),
             ExpandAllShorthandProvider.metadata,
         ),
+
+        // commands
+        vscode.commands.registerTextEditorCommand("hex-casting.copySelectionAsBBCode", copySelectionAsBBCodeCommand),
     );
 }
 

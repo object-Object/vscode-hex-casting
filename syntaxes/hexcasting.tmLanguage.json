@@ -72,11 +72,11 @@
         "directive": {
             "name": "hexcasting.directive",
             "begin": "^(?=#)",
-            "end": "(?=//|/\\*)|$",
+            "end": "$",
             "patterns": [
                 {
                     "name": "punctuation.definition.directive",
-                    "match": "^#"
+                    "match": "^#|[()]"
                 },
                 {
                     "name": "keyword.control.directive.define",
@@ -98,14 +98,12 @@
                     ]
                 },
                 {
-                    "name": "entity.name.function.preprocessor",
-                    "match": ".+?(?==|$)"
+                    "name": "string.unquoted, meta.preprocessor.macro",
+                    "match": "(?<=\\().+(?=\\))"
                 },
                 {
-                    "disabled": 1,
-                    "begin": "(?<=^#define +)",
-                    "end": "(?==)|$",
-                    "patterns": [{ "include": "#pattern" }]
+                    "name": "entity.name.function.preprocessor",
+                    "match": ".+?(?=\\()"
                 }
             ]
         }

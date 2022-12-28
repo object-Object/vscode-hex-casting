@@ -87,7 +87,22 @@
                     }
                 }
             }
-        ]
+        ],
+        "commands": [
+            {
+                "command": "hex-casting.copySelectionAsBBCode",
+                "title": "Copy Selection as BBCode",
+                "enablement": "editorLangId == hexcasting && editorHasSelection && !editorHasMultipleSelections"
+            }
+        ],
+        "menus": {
+            "commandPalette": [
+                {
+                    "command": "hex-casting.copySelectionAsBBCode",
+                    "when": "editorLangId == hexcasting"
+                }
+            ]
+        }
     },
     "scripts": {
         "vscode:prepublish": "yarn run compile",

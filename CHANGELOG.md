@@ -2,7 +2,15 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
-## [unreleased]
+## [0.1.0] - 2022-12-28
+
+### Additions
+
+- Add command to copy selection as BBCode (currently disabled with multi-selections)
+
+### Changes
+
+- BREAKING: Require angle signature for `#define` directives
 
 ### Fixes
 
