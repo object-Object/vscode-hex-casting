@@ -837,6 +837,7 @@ async function copySelectionAsBBCodeCommand({ selection, document }: vscode.Text
                 step: step++,
                 totalSteps: unknownNumbers.size,
                 placeholder: "EAST aqwed",
+                ignoreFocusOut: true,
                 valuePrefix: num >= 0 ? "SOUTH_EAST aqaa" : "NORTH_EAST dedd",
                 validate: validateAngleSignature,
             });

@@ -5,6 +5,7 @@ interface InputBoxParameters {
     step: number;
     totalSteps: number;
     placeholder: string;
+    ignoreFocusOut: boolean;
     valuePrefix?: string;
     validate: (value: string) => string | undefined;
 }
@@ -14,6 +15,7 @@ export default async function showInputBox({
     step,
     totalSteps,
     placeholder,
+    ignoreFocusOut,
     valuePrefix,
     validate,
 }: InputBoxParameters) {
@@ -23,6 +25,7 @@ export default async function showInputBox({
         const input = vscode.window.createInputBox();
         input.title = title;
         input.placeholder = placeholder;
+        input.ignoreFocusOut = ignoreFocusOut;
 
         if (totalSteps > 1) {
             input.step = step;

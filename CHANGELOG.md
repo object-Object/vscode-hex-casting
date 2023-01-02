@@ -2,6 +2,12 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.1] - 2023-01-01
+
+### Fixes
+
+- Fix BBCode number input box disappearing if you tab out
+
 ## [0.1.0] - 2022-12-28
 
 ### Additions
