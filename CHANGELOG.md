@@ -2,6 +2,16 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.2] - 2023-01-24
+
+### Changes
+
+- Use HexBug's new pattern rendering (highlighted start arrow, larger start/end dots)
+
+### Fixes
+
+- Fix old translations still being used for some patterns (eg. Chronicler's Purification was Scribe's Purification)
+
 ## [0.1.1] - 2023-01-01
 
 ### Fixes
