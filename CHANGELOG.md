@@ -2,6 +2,12 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.3] - 2023-01-27
+
+### Changes
+
+- New extension icon (very based)
+
 ## [0.1.2] - 2023-01-24
 
 ### Changes

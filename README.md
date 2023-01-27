@@ -33,3 +33,7 @@ Probably lots of things. This is my first extension, and as such, I'm sure there
 ## Development
 
 `src/data/registry.json` is generated using [this script in HexBug](https://github.com/object-Object/HexBug/blob/main/generate_pattern_data.py).
+
+## Attribution
+
+Icon: `@d3bugIANgl17ch` on Discord
