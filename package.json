@@ -26,9 +26,6 @@
         "Minecraft"
     ],
     "main": "./out/extension.js",
-    "activationEvents": [
-        "onLanguage:hexcasting"
-    ],
     "contributes": {
         "languages": [
             {
