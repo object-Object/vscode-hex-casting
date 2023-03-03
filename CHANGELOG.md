@@ -2,12 +2,18 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.5] - 2023-03-03
+
+### Changes
+
+- Update Hexbound to 0.1.1+1.19.2
+
 ## [0.1.4] - 2023-02-16
 
 ### Changes
 
 - Update Hexal to 0.2.7
-- Update Hexbound to 0.1.0
+- Update Hexbound to 0.1.0+1.19.2
 
 ## [0.1.3] - 2023-01-27
 
