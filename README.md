@@ -2,6 +2,8 @@
 
 VSCode language features for the Hex Casting mod for Minecraft. 
 
+**Note to VSCodium users:** I don't plan on publishing this extension to Open VSX. I'm not a fan of the amount of personal information that the Eclipse Foundation requires me to make public. However, if you'd like to install this extension manually, you can download the latest `.vsix` file from the [Visual Studio Marketplace page](https://marketplace.visualstudio.com/items?itemName=object-Object.hex-casting) by clicking Download Extension in the right sidebar under Resources.
+
 ## Features
 
 ![Feature demo gif](/images/demo.gif)
