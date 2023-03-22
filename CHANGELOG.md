@@ -2,6 +2,16 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.7] - 2023-03-22
+
+### Changes
+
+- Updated README
+
+### Notes
+
+- This is a test release to ensure that my GitHub release workflow is working properly, sorry!
+
 ## [0.1.6] - 2023-03-22
 
 ### Mod Updates
