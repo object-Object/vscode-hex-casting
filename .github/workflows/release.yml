@@ -13,6 +13,6 @@ jobs:
         uses: Roang-zero1/github-create-release-action@v3
         with:
           version_regex: ^v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+
-          release_text: "[Changelog](https://github.com/object-Object/vscode-hex-casting/blob/main/CHANGELOG.md)"
+          release_text: "[Download](https://marketplace.visualstudio.com/items?itemName=object-Object.hex-casting) | [Changelog](https://github.com/object-Object/vscode-hex-casting/blob/main/CHANGELOG.md)"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
