@@ -9,6 +9,9 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      - name: Wait for VS Marketplace validation
+        run: sleep 5m
+        shell: bash
       - name: Create GitHub release
         uses: Roang-zero1/github-create-release-action@v3
         with:
