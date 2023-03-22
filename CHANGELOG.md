@@ -2,7 +2,7 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
-## 0.1.6 - 2023-03-22
+## [0.1.6] - 2023-03-22
 
 ### Mod Updates
 
@@ -12,26 +12,26 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 
 - Retroactively updated changelog format: added dedicated section for mod updates
 
-## 0.1.5 - 2023-03-03
+## [0.1.5] - 2023-03-03
 
 ### Mod Updates
 
 - Hexbound: 0.1.1+1.19.2
 
-## 0.1.4 - 2023-02-16
+## [0.1.4] - 2023-02-16
 
 ### Mod Updates
 
 - Hexal: 0.2.7
 - Hexbound: 0.1.0+1.19.2
 
-## 0.1.3 - 2023-01-27
+## [0.1.3] - 2023-01-27
 
 ### Changes
 
 - New extension icon (very based)
 
-## 0.1.2 - 2023-01-24
+## [0.1.2] - 2023-01-24
 
 ### Changes
 
@@ -41,13 +41,13 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 
 - Fix old translations still being used for some patterns (eg. Chronicler's Purification was Scribe's Purification)
 
-## 0.1.1 - 2023-01-01
+## [0.1.1] - 2023-01-01
 
 ### Fixes
 
 - Fix BBCode number input box disappearing if you tab out
 
-## 0.1.0 - 2022-12-28
+## [0.1.0] - 2022-12-28
 
 ### Additions
 
@@ -61,13 +61,13 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 
 - Fix diagnostics being provided for non-Hex files if the editor was reloaded with a Hex and a non-Hex file in split view
 
-## 0.0.12 - 2022-12-21
+## [0.0.12] - 2022-12-21
 
 ### Additions
 
 - Add code actions to convert shorthand / internal names to full patterns
 
-## 0.0.11 - 2022-12-19
+## [0.0.11] - 2022-12-19
 
 ### Additions
 
@@ -79,13 +79,13 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 
 - Fix pattern args containing unparsed Markdown
 
-## 0.0.10 - 2022-12-18
+## [0.0.10] - 2022-12-18
 
 ### Changes
 
 - Update Hexbound data, adding web book links
 
-## 0.0.9 - 2022-12-17
+## [0.0.9] - 2022-12-17
 
 ### Additions
 
@@ -95,7 +95,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 
 - Fix a couple of patterns still using the old abbreviated type (eg. Multiplicative Dstl.)
 
-## 0.0.8 - 2022-12-14
+## [0.0.8] - 2022-12-14
 
 ### Changes
 
@@ -105,7 +105,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 
 - Fix `auto` option for the `appendNewline` setting appending a newline for opening brackets, not closing
 
-## 0.0.7 - 2022-12-14
+## [0.0.7] - 2022-12-14
 
 ### Additions
 
@@ -125,7 +125,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 - Fix leading Consideration not showing hover text
 - Fix upside down Consideration image
 
-## 0.0.6 - 2022-12-10
+## [0.0.6] - 2022-12-10
 
 ### Changes
 
@@ -136,7 +136,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 
 - Fix brackets having no colour when rainbow brackets are disabled
 
-## 0.0.5 - 2022-12-10
+## [0.0.5] - 2022-12-10
 
 ### Additions
 
@@ -147,13 +147,13 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 
 - Fix `:` causing issues in comments
 
-## 0.0.4 - 2022-12-09
+## [0.0.4] - 2022-12-09
 
 ### Fixes
 
 - Add / to the characters that can be in a word, so `read/local` now completes properly
 
-## 0.0.3 - 2022-12-09
+## [0.0.3] - 2022-12-09
 
 ### Changes
 
@@ -161,13 +161,13 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 - Tweak what's considered a "word", so completion now works after spaces in a pattern name as well
 - Add numbers to trigger characters for normal patterns, so `2dup` now completes properly
 
-## 0.0.2 - 2022-12-09
+## [0.0.2] - 2022-12-09
 
 ### Fixes
 
 - Fix completions not being provided for an empty line
 - Fix `Dstl.` not being highlighted as a type
 
-## 0.0.1
+## [0.0.1]
 
 - Initial release
