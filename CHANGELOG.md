@@ -2,6 +2,12 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.12] - 2023-04-21
+
+### Mod Updates
+
+- HexTweaks: 2.2.0
+
 ## [0.1.11] - 2023-04-21
 
 ### Changes
