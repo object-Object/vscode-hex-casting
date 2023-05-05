@@ -2,6 +2,16 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.14] - 2023-05-04
+
+### Changes
+
+- Allowed using the `s` angle in macro patterns
+
+### Mod Updates
+
+- HexTweaks: 3.0.0
+
 ## [0.1.13] - 2023-04-27
 
 ### Mod Updates

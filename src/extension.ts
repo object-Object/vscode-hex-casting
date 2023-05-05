@@ -450,7 +450,7 @@ class PatternHoverProvider implements vscode.HoverProvider {
 const patternRe =
     /^(?<prefix>[ \t]*)(?<escape>Consideration: *)?(?!\/\/|\/\*| )(?<pattern>(?:[a-zA-Z0-9:'+\-\./ _]+?|[{}\[\]]))(?= *(?:\/\/|\/\*|{|}|$))/gm;
 const defineRe =
-    /^(?<directionPrefix>(?<directive>#define[ \t]+)(?=[^ \t])(?<translation>[^(\n]+?)[ \t]*\([ \t]*)(?<direction>[a-zA-Z_\-]+)(?:[ \t]+(?<pattern>[aqwedAQWED]+))?[ \t]*\)[ \t]*(?:=[ \t]*(?=[^ \t])(?<args>.+?)[ \t]*)?(?:\/\/|\/\*|$)/;
+    /^(?<directionPrefix>(?<directive>#define[ \t]+)(?=[^ \t])(?<translation>[^(\n]+?)[ \t]*\([ \t]*)(?<direction>[a-zA-Z_\-]+)(?:[ \t]+(?<pattern>[aqwedsAQWEDS]+))?[ \t]*\)[ \t]*(?:=[ \t]*(?=[^ \t])(?<args>.+?)[ \t]*)?(?:\/\/|\/\*|$)/;
 
 interface PatternMatch {
     prefix: string;
