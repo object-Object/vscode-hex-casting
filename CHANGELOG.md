@@ -2,6 +2,12 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [UNRELEASED] - 
+
+### Changes
+
+- Updated pattern overlap rendering
+
 ## [0.1.14] - 2023-05-04
 
 ### Changes
