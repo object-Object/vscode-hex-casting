@@ -33,9 +33,5 @@
             }
         }
     ],
-    "wordPattern": "(?<=^\\s*)Consideration:|(?<=^\\s*(?:Consideration: )?)(?!//|/\\*| )[a-zA-Z0-9:'+\\-./ _]+?(?= *(?://|/\\*|$))",
-    "indentationRules": {
-        "increaseIndentPattern": "(?<!//.*)[\\[{]",
-        "decreaseIndentPattern": "(?<!//.*)[\\]}]"
-    }
+    "wordPattern": "(?<=^\\s*)Consideration:|(?<=^\\s*(?:Consideration: )?)(?!//|/\\*| )[a-zA-Z0-9:'+\\-./ _]+?(?= *(?://|/\\*|$))"
 }
