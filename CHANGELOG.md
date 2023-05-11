@@ -2,11 +2,15 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
-## [UNRELEASED] - 
+## [0.1.15] - 2023-05-10
 
 ### Changes
 
 - Updated pattern overlap rendering
+
+### Mod Updates
+
+- HexTweaks: 3.2.1
 
 ## [0.1.14] - 2023-05-04
 
