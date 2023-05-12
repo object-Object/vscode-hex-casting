@@ -8,12 +8,14 @@
     // symbols used as brackets
     "brackets": [
         ["{", "}"],
-        ["[", "]"]
+        ["[", "]"],
+        ["<", ">"]
     ],
     "autoClosingPairs": [
         ["{", "}"],
         ["[", "]"],
         ["(", ")"],
+        ["<", ">"],
         ["/*", "*/"]
     ],
     "onEnterRules": [
@@ -33,5 +35,5 @@
             }
         }
     ],
-    "wordPattern": "(?<=^\\s*)Consideration:|(?<=^\\s*(?:Consideration: )?)(?!//|/\\*| )[a-zA-Z0-9:'+\\-./ _]+?(?= *(?://|/\\*|$))"
+    "wordPattern": "(?<=^\\s*)Consideration:|(?<=^\\s*(?:Consideration: )?)(?!//|/\\*| )[a-zA-Z0-9:'+\\-./ _]+?(?= *(?://|/\\*|<|$))"
 }

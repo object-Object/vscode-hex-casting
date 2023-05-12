@@ -7,6 +7,7 @@
         { "include": "#bracket" },
         { "include": "#escape" },
         { "include": "#directive" },
+        { "include": "#iota" },
         { "include": "#linepattern" }
     ],
     "repository": {
@@ -47,7 +48,7 @@
                 },
                 {
                     "name": "variable.parameter",
-                    "match": "(?<!Consideration.*)(?<=:)[^/\n]+"
+                    "match": "(?<!Consideration.*)(?<=:)[^/\n<]+"
                 },
                 {
                     "name": "variable.parameter",
@@ -66,8 +67,22 @@
         "linepattern": {
             "name": "hexcasting.linepattern",
             "begin": "^\\s*(?!\\s*Consideration|//|/\\*)",
-            "end": "(?=//|/\\*)|$",
+            "end": "(?=//|/\\*|<)|$",
             "patterns": [{ "include": "#pattern" }]
+        },
+        "iota": {
+            "name": "string.unquoted, punctuation.definition",
+            "match": "<(?:{(.*)}|\\\\(.*)|<(.*)>|(.*))>",
+            "captures": {
+                "1": { "patterns": [{ "include": "#iotainner" }] },
+                "2": { "patterns": [{ "include": "#iotainner" }] },
+                "3": { "patterns": [{ "include": "#iotainner" }] },
+                "4": { "patterns": [{ "include": "#iotainner" }] }
+            }
+        },
+        "iotainner": {
+            "name": "constant constant.numeric",
+            "match": ".+"
         },
         "directive": {
             "name": "hexcasting.directive",

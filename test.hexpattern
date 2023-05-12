@@ -163,3 +163,22 @@ read/
     }
 ]
 Create Spider Construct
+
+<>
+<-6.9>
+<(4, 2, 0)>
+
+<{}>
+<{-6.9}>
+<{(4, 2, 0)}>
+
+<\>
+<\-6.9>
+<\(4, 2, 0)>
+
+<<>>
+<<-6.9>>
+<<(4, 2, 0)>>
+
+Bookkeeper's Gambit: v-v <-6.9>
+Bookkeeper's Gambit: v-v <(4, 2, 0)>
