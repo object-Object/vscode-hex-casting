@@ -2,11 +2,27 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.16] - 2023-05-11
+
+### Additions
+
+- Add basic support for iota embedding syntax (thanks to walksanatora for pushing me to get this done)
+  - `<iota>`: default syntax, represents directly embedding an iota; may be placed after a pattern placeholder on the same line
+  - `<{iota}>`: parsers should expand this, adding patterns to embed the iota using Intro/Retro/Flock
+  - `{\iota}`: parsers should embed the iota using Consideration
+  - `<<iota>>`: parsers should embed the iota using Intro/Retro/Flock or Consideration, whichever is shorter
+
+### Fixes
+
+- Fix incorrect indentation after brackets in comments
+- Fix Bookkeeper's Gambit short suggestions not displaying on the second character typed (eg. `v-`)
+- Fix end-of-line comments being overwritten by accepting a pattern suggestion on the same line
+
 ## [0.1.15] - 2023-05-10
 
 ### Changes
 
-- Updated pattern overlap rendering
+- Update pattern overlap rendering
 
 ### Mod Updates
 
@@ -16,7 +32,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 
 ### Changes
 
-- Allowed using the `s` angle in macro patterns
+- Allow using the `s` angle in macro patterns
 
 ### Mod Updates
 
@@ -38,7 +54,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 
 ### Changes
 
-- Added support for HexTweaks 2.0.0 by walksanatora
+- Add support for HexTweaks 2.0.0 by walksanatora
 
 ## [0.1.10] - 2023-04-15
 
@@ -76,7 +92,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 
 ### Notes
 
-- Retroactively updated changelog format: added dedicated section for mod updates
+- Retroactively update changelog format: add dedicated section for mod updates
 
 ## [0.1.5] - 2023-03-03
 

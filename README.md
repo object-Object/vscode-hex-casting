@@ -19,6 +19,7 @@ To get release notifications, go to the [GitHub repo](https://github.com/object-
 * Snippets to speed up your workflow
 * `#define` support for Brigh's Gambit macros
 * Language diagnostics/linting to highlight unknown patterns and invalid directives
+* And more!
 
 ## Extension Settings
 
