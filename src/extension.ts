@@ -54,6 +54,12 @@ const themePaths = {
     [vscode.ColorThemeKind.Light]: "light/",
 };
 
+// put special before normal name before internal name
+const specialSortPrefix = "";
+const translationSortPrefix = "~";
+const nameSortPrefix = "~~";
+const specialExtraSortPrefix = "~~~";
+
 const shorthandLookup: ShorthandLookup = untypedShorthandLookup;
 for (const [translation, pattern] of Object.entries(defaultRegistry)) {
     if (!Object.prototype.hasOwnProperty.call(shorthandLookup, pattern.name)) {
@@ -108,8 +114,9 @@ function makeDocumentation(
     return result;
 }
 
-function getInsertTextSuffix(hasParam: boolean, trimmedNextLine: string): string {
+function getInsertTextSuffix(hasParam: boolean, trimmedNextLine: string, hasTextAfter: boolean): string {
     if (hasParam) return ": ";
+    if (hasTextAfter) return "";
     switch (appendNewline) {
         case "always":
             return "\n";
@@ -178,12 +185,26 @@ function getRegistryEntries(document: vscode.TextDocument): [string, PatternInfo
     return Object.entries<PatternInfo>(defaultRegistry).concat(documentMacros ? Object.entries(documentMacros) : []);
 }
 
+function getPatternRange(document: vscode.TextDocument, start: vscode.Position): [vscode.Range, boolean] {
+    const range = document.lineAt(start.line).range.with({ start });
+    const line = document.getText(range);
+
+    const endIndex = line.search(/<|\/\/|\/\*/);
+    if (endIndex > -1) {
+        const end = start.translate({ characterDelta: endIndex });
+        const rest = line.slice(endIndex + 1);
+        return [range.with({ end }), rest.trim().length > 0];
+    }
+    return [range, false];
+}
+
 function makeCompletionItem(
     document: vscode.TextDocument,
     label: string,
     hasParam: boolean,
     trimmedNextLine: string,
     range: vscode.Range,
+    hasTextAfter: boolean,
     patternInfo?: PatternInfo,
 ): vscode.CompletionItem {
     patternInfo = patternInfo ?? getFromRegistry(document, label)!;
@@ -197,8 +218,9 @@ function makeCompletionItem(
         detail: args ?? undefined,
         documentation: makeDocumentation(label, patternInfo, 300, 300),
         kind: vscode.CompletionItemKind.Function,
-        insertText: label + getInsertTextSuffix(hasParam, trimmedNextLine),
+        insertText: label + getInsertTextSuffix(hasParam, trimmedNextLine, hasTextAfter),
         range,
+        sortText: translationSortPrefix + label,
     };
 }
 
@@ -208,19 +230,21 @@ function makeCompletionItems(
     hasParam: boolean,
     trimmedNextLine: string,
     range: vscode.Range,
+    hasTextAfter: boolean,
     patternInfo?: PatternInfo,
 ): vscode.CompletionItem[] {
     patternInfo = patternInfo ?? getFromRegistry(document, label)!;
     const { name } = patternInfo;
 
-    const base = makeCompletionItem(document, label, hasParam, trimmedNextLine, range, patternInfo);
-    return [base, ...(name ? [{ ...base, filterText: name, sortText: "~" + label }] : [])];
+    const base = makeCompletionItem(document, label, hasParam, trimmedNextLine, range, hasTextAfter, patternInfo);
+    return [base, ...(name ? [{ ...base, filterText: name, sortText: nameSortPrefix + label }] : [])];
 }
 
 function makeCompletionList(
     document: vscode.TextDocument,
     trimmedNextLine: string,
     range: vscode.Range,
+    hasTextAfter: boolean,
 ): vscode.CompletionItem[] {
     return getRegistryEntries(document)
         .filter(([translation]) => translation != "Consideration")
@@ -231,6 +255,7 @@ function makeCompletionList(
                 !patternInfo.name ? false : ["mask", "number"].includes(patternInfo.name),
                 trimmedNextLine,
                 range,
+                hasTextAfter,
                 patternInfo,
             ),
         );
@@ -343,16 +368,28 @@ class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
         if (shouldSkipCompletions(line)) return;
 
         const trimmedNextLine = getTrimmedNextLine(document, position);
-        const range = document.lineAt(position.line).range.with({ start: rangeStart });
+        const [range, hasTextAfter] = getPatternRange(document, rangeStart);
         return [
-            ...makeCompletionList(document, trimmedNextLine, range),
-            ...makeCompletionItems(document, "Consideration", !line.includes("Consideration:"), trimmedNextLine, range),
+            ...makeCompletionList(document, trimmedNextLine, range, hasTextAfter),
+            ...makeCompletionItems(
+                document,
+                "Consideration",
+                !line.includes("Consideration:"),
+                trimmedNextLine,
+                range,
+                hasTextAfter,
+            ),
         ];
     }
 }
 
 class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
-    constructor(public translation: string, public regex: RegExp) {}
+    constructor(
+        public translation: string,
+        public regex: RegExp,
+        public extraSuffixes: string[] = [],
+        public extraSuffixMaxRangeLength: number = 1,
+    ) {}
 
     public provideCompletionItems(
         document: vscode.TextDocument,
@@ -371,15 +408,37 @@ class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
         const label = `${this.translation}: ${text}`;
         const patternInfo = getFromRegistry(document, this.translation)!;
         const trimmedNextLine = getTrimmedNextLine(document, position);
-        const range = wordRange.with({ end: document.lineAt(position.line).range.end });
+        const [range, hasTextAfter] = getPatternRange(document, wordRange.start);
+
+        // god this is awful code
+        const extraItems =
+            range.end.character - range.start.character <= this.extraSuffixMaxRangeLength
+                ? this.extraSuffixes.map((suffix) => ({
+                      ...makeCompletionItem(
+                          document,
+                          label + suffix,
+                          false,
+                          trimmedNextLine,
+                          range,
+                          hasTextAfter,
+                          patternInfo,
+                      ),
+                      kind: undefined,
+                      preselect: false,
+                      filterText: text + suffix,
+                      sortText: specialExtraSortPrefix + text + suffix,
+                  }))
+                : [];
 
         return [
             {
-                ...makeCompletionItem(document, label, false, trimmedNextLine, range, patternInfo),
+                ...makeCompletionItem(document, label, false, trimmedNextLine, range, hasTextAfter, patternInfo),
                 kind: undefined,
                 preselect: true,
                 filterText: text,
+                sortText: specialSortPrefix + text,
             },
+            ...extraItems,
         ];
     }
 }
@@ -402,7 +461,7 @@ class ConsiderationCompletionItemProvider implements vscode.CompletionItemProvid
         const isSingle = text === "\\";
         const label = "Consideration" + (isSingle ? "" : ": Consideration");
         const trimmedNextLine = getTrimmedNextLine(document, position);
-        const range = isSingle ? wordRange : wordRange.with({ end: document.lineAt(position.line).range.end });
+        const [range, hasTextAfter] = getPatternRange(document, wordRange.start);
 
         return [
             {
@@ -412,6 +471,7 @@ class ConsiderationCompletionItemProvider implements vscode.CompletionItemProvid
                     isSingle,
                     trimmedNextLine,
                     range,
+                    hasTextAfter,
                     defaultRegistry["Consideration"],
                 ),
                 kind: vscode.CompletionItemKind.Snippet,
@@ -910,20 +970,20 @@ export function activate(context: vscode.ExtensionContext) {
         // completions
         vscode.languages.registerCompletionItemProvider(
             selector,
-            new PatternCompletionItemProvider(),
-            ..."abcdefghijklmnopqrstuvwxyz0123456789",
-        ),
-        vscode.languages.registerCompletionItemProvider(
-            selector,
             new SpecialCompletionItemProvider("Numerical Reflection", /-?(\d*\.\d*|\d+)/),
             ..."-0123456789.",
         ),
         vscode.languages.registerCompletionItemProvider(
             selector,
-            new SpecialCompletionItemProvider("Bookkeeper's Gambit", /[v\-]+/),
+            new SpecialCompletionItemProvider("Bookkeeper's Gambit", /[v\-]+/, [..."v-"]),
             ..."v-",
         ),
         vscode.languages.registerCompletionItemProvider(selector, new ConsiderationCompletionItemProvider(), "\\"),
+        vscode.languages.registerCompletionItemProvider(
+            selector,
+            new PatternCompletionItemProvider(),
+            ..."abcdefghijklmnopqrstuvwxyz0123456789-",
+        ),
 
         // hover
         vscode.languages.registerHoverProvider(selector, new PatternHoverProvider()),
