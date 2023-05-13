@@ -2,6 +2,13 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.17] - 2023-05-13
+
+### Additions
+
+- Add the ability to configure which mods are enabled using the setting `enabledMods`; patterns from disabled mods will not be recognized or suggested
+- Add support for HexKinetics 0.5.0 by Sonunte
+
 ## [0.1.16] - 2023-05-11
 
 ### Additions

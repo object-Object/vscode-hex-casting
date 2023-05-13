@@ -98,6 +98,9 @@
                             "HexTweaks": {
                                 "type": "boolean"
                             },
+                            "HexKinetics": {
+                                "type": "boolean"
+                            },
                             "Hexbound": {
                                 "type": "boolean"
                             }
@@ -107,6 +110,7 @@
                             "Hexal",
                             "MoreIotas",
                             "HexTweaks",
+                            "HexKinetics",
                             "Hexbound"
                         ],
                         "additionalProperties": false,
@@ -115,6 +119,7 @@
                             "Hexal": true,
                             "MoreIotas": true,
                             "HexTweaks": true,
+                            "HexKinetics": true,
                             "Hexbound": true
                         }
                     }
