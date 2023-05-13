@@ -45,7 +45,7 @@ const selector: vscode.DocumentSelector = [
     { scheme: "file", language: "hexcasting" },
     { scheme: "untitled", language: "hexcasting" },
 ];
-const defaultRegistry: Registry<DefaultPatternInfo> = untypedRegistry;
+let defaultRegistry: Registry<DefaultPatternInfo> = untypedRegistry;
 const macroRegistry: Map<vscode.Uri, Registry<MacroPatternInfo>> = new Map();
 const themePaths = {
     [vscode.ColorThemeKind.Dark]: "dark/",
@@ -60,19 +60,39 @@ const translationSortPrefix = "~";
 const nameSortPrefix = "~~";
 const specialExtraSortPrefix = "~~~";
 
-const shorthandLookup: ShorthandLookup = untypedShorthandLookup;
-for (const [translation, pattern] of Object.entries(defaultRegistry)) {
-    if (!Object.prototype.hasOwnProperty.call(shorthandLookup, pattern.name)) {
-        shorthandLookup[pattern.name] = translation;
+function makeShorthandLookup(): ShorthandLookup {
+    let lookup: ShorthandLookup = untypedShorthandLookup;
+    for (const [translation, pattern] of Object.entries(defaultRegistry)) {
+        if (!Object.prototype.hasOwnProperty.call(lookup, pattern.name)) {
+            lookup[pattern.name] = translation;
+        }
     }
+    return lookup;
 }
+
+let shorthandLookup = makeShorthandLookup();
 
 let appendNewline: AppendNewline;
 let enableDiagnostics: boolean;
+let enabledMods: { [modName: string]: boolean };
+
+function filterObject<V>(obj: { [key: string]: V }, callback: (entry: [string, V]) => boolean): { [key: string]: V } {
+    return Object.fromEntries(Object.entries(obj).filter(callback));
+}
 
 function updateConfiguration() {
     appendNewline = vscode.workspace.getConfiguration(rootSection).get("appendNewline")!;
     enableDiagnostics = vscode.workspace.getConfiguration(rootSection).get("enableDiagnostics")!;
+    enabledMods = vscode.workspace.getConfiguration(rootSection).get("enabledMods")!;
+
+    // clone the untyped registry and only include entries where the mod is enabled
+    defaultRegistry = filterObject(JSON.parse(JSON.stringify(untypedRegistry)), ([_, { modName }]) => {
+        if (!enabledMods.hasOwnProperty(modName)) {
+            throw new Error(`Mod missing from config option hex-casting.enabledMods: "${modName}"`);
+        }
+        return enabledMods[modName];
+    });
+    shorthandLookup = makeShorthandLookup();
 }
 
 // maxImageSize overrides maxImageHeight

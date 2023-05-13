@@ -81,6 +81,42 @@
                         "type": "boolean",
                         "default": true,
                         "description": "Controls whether the editor should show diagnostics, such as warnings for unknown patterns."
+                    },
+                    "hex-casting.enabledMods": {
+                        "type": "object",
+                        "description": "Controls which mods are enabled. Patterns from disabled mods will not be recognized or suggested. Currently, macros will still work if Hexal is disabled, but this may change in a future update.",
+                        "properties": {
+                            "Hex Casting": {
+                                "type": "boolean"
+                            },
+                            "Hexal": {
+                                "type": "boolean"
+                            },
+                            "MoreIotas": {
+                                "type": "boolean"
+                            },
+                            "HexTweaks": {
+                                "type": "boolean"
+                            },
+                            "Hexbound": {
+                                "type": "boolean"
+                            }
+                        },
+                        "required": [
+                            "Hex Casting",
+                            "Hexal",
+                            "MoreIotas",
+                            "HexTweaks",
+                            "Hexbound"
+                        ],
+                        "additionalProperties": false,
+                        "default": {
+                            "Hex Casting": true,
+                            "Hexal": true,
+                            "MoreIotas": true,
+                            "HexTweaks": true,
+                            "Hexbound": true
+                        }
                     }
                 }
             }
