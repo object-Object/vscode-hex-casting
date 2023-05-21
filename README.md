@@ -13,7 +13,7 @@ To get release notifications, go to the [GitHub repo](https://github.com/object-
 ![Feature demo gif](/images/demo.gif)
 
 * Full syntax highlighting
-* Pattern autocomplete for Hex Casting, Hexal, MoreIotas, and Hexbound
+* Pattern autocomplete for Hex Casting, Hexal, MoreIotas, Hexbound, HexTweaks, and HexKinetics
 * Pattern hover text with name, arguments, mod name, angle signature, and a picture of the stroke order
 * C-style line and block comments
 * Snippets to speed up your workflow
@@ -27,6 +27,7 @@ This extension contributes the following settings:
 
 * `hex-casting.appendNewline`: Controls whether the editor should insert a newline after selecting a pattern from the completion list. If set to `auto`, only appends a newline if the next line is empty or a closing bracket.
 * `hex-casting.enableDiagnostics`: Controls whether the editor should show diagnostics, such as warnings for unknown patterns.
+* `hex-casting.enabledMods`: Controls which mods are enabled. Patterns from disabled mods will not be recognized or suggested. Currently, macros will still work if Hexal is disabled, but this may change in a future update.
 
 ## Known Issues
 
