@@ -18,6 +18,12 @@
         ["<", ">"],
         ["/*", "*/"]
     ],
+    "folding": {
+        "markers": {
+            "start": "/\\*((?!\\*/).)*$",
+            "end": "^((?!/\\*).)*\\*/"
+        }
+    },
     "onEnterRules": [
         {
             "beforeText": "/\\*",
@@ -30,9 +36,7 @@
         },
         {
             "beforeText": "//.*[\\[{]",
-            "action": {
-                "indent": "none"
-            }
+            "action": { "indent": "none" }
         }
     ],
     "wordPattern": "(?<=^\\s*)Consideration:|(?<=^\\s*(?:Consideration: )?)(?!//|/\\*| )[a-zA-Z0-9:'+\\-./ _]+?(?= *(?://|/\\*|<|$))"
