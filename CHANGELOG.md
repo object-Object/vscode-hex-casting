@@ -2,6 +2,18 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.20] - 2023-05-29
+
+### Changes
+
+- Block comments are now collapsible (#5)
+
+### Mod Updates
+
+- Hexal: 0.2.15
+- HexKinetics: 0.7.0
+- HexTweaks: 3.2.2
+
 ## [0.1.19] - 2023-05-21
 
 ### Mod Updates
