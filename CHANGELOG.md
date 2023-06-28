@@ -2,6 +2,13 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.22] - 2023-06-28
+
+### Mod Updates
+
+- Hexal: 0.2.16
+- HexKinetics: 0.7.2
+
 ## [0.1.21] - 2023-06-04
 
 ### Mod Updates
