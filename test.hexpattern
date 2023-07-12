@@ -21,6 +21,8 @@
 #define Foo's Purification (e) =     
 #define Foo's Reflection
 #define Foo's Reflection = int -> int
+ #define Foo =
+ define Foo
 
 Foo's Reflection
 Foo's Purification

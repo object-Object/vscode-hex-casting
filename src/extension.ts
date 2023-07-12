@@ -281,8 +281,11 @@ function makeCompletionList(
         );
 }
 
+const defineRe =
+    /^(?<directionPrefix>(?<directive>#define[ \t]+)(?=[^ \t])(?<translation>[^(\n]+?)[ \t]*\([ \t]*)(?<direction>[a-zA-Z_\-]+)(?:[ \t]+(?<pattern>[aqwedsAQWEDS]+))?[ \t]*\)[ \t]*(?:=[ \t]*(?=[^ \t])(?<args>.+?)[ \t]*)?(?:\/\/|\/\*|$)/;
+
 function shouldSkipCompletions(line: string): boolean {
-    return /\S\s|\/\/|\/\*/.test(line.replace(/Consideration:/g, "")) || line.startsWith("#");
+    return /\S\s|\/\/|\/\*/.test(line.replace(/Consideration:/g, "")) || defineRe.test(line);
 }
 
 function getTrimmedNextLine(document: vscode.TextDocument, position: vscode.Position): string {
@@ -307,6 +310,7 @@ const suffixes: [RegExp, string][] = [
     [/(?<= )gam(?= |$)/i, "Gambit"],
 ];
 
+// ayo
 const plurals: [string | RegExp, string][] = [
     ["", ""],
     [/(?<=^\S+)(s?)(?= |$)/, "'s"],
@@ -529,8 +533,6 @@ class PatternHoverProvider implements vscode.HoverProvider {
 // ew.
 const patternRe =
     /^(?<prefix>[ \t]*)(?<escape>Consideration: *)?(?!\/\/|\/\*| )(?<pattern>(?:[a-zA-Z0-9:'+\-\./ _]+?|[{}\[\]]))(?= *(?:\/\/|\/\*|{|}|$))/gm;
-const defineRe =
-    /^(?<directionPrefix>(?<directive>#define[ \t]+)(?=[^ \t])(?<translation>[^(\n]+?)[ \t]*\([ \t]*)(?<direction>[a-zA-Z_\-]+)(?:[ \t]+(?<pattern>[aqwedsAQWEDS]+))?[ \t]*\)[ \t]*(?:=[ \t]*(?=[^ \t])(?<args>.+?)[ \t]*)?(?:\/\/|\/\*|$)/;
 
 interface PatternMatch {
     prefix: string;
@@ -589,14 +591,35 @@ function refreshDiagnostics(
             }
 
             // #define diagnostics
-            if (/^#define([^a-zA-Z]|$)/.test(line.text)) {
+            if (/#define([^a-zA-Z]|$)/.test(line.text)) {
                 const match = defineRe.exec(line.text);
 
                 if (match == null) {
-                    const cause = /[\(\)]/.test(line.text) ? "" : " (missing angle signature)";
+                    // hopefully more helpful error messages for broken #define
+                    let causes = [];
+                    if (!/^#define/.test(line.text)) {
+                        causes.push("illegal whitespace at start of line");
+                    }
+                    if (!/\(.+\)/.test(line.text)) {
+                        causes.push("missing angle signature");
+                    }
+                    if (/^[^=]+=\s*(\/\/|\/\*|$)/.test(line.text)) {
+                        causes.push("missing args after `=`");
+                    }
+
+                    // in case nothing matched, make sure it still looks all nice and pretty
+                    let message = "Malformed #define directive";
+                    if (causes.length > 1) {
+                        message += `:\n- ${causes.join("\n- ")}`;
+                    } else if (causes.length == 1) {
+                        message += `: ${causes[0]}.`;
+                    } else {
+                        message += ".";
+                    }
+
                     directiveDiagnostics.push({
                         range: line.range,
-                        message: `Malformed #define directive${cause}.`,
+                        message,
                         severity: vscode.DiagnosticSeverity.Error,
                         source: directiveDiagnosticsSource,
                     });
