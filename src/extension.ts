@@ -78,7 +78,6 @@ let enabledMods: { [modName: string]: boolean };
 let showInternalNameHints: boolean;
 let showMacroNameHints: boolean;
 
-
 function filterObject<V>(obj: { [key: string]: V }, callback: (entry: [string, V]) => boolean): { [key: string]: V } {
     return Object.fromEntries(Object.entries(obj).filter(callback));
 }
