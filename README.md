@@ -28,6 +28,8 @@ This extension contributes the following settings:
 * `hex-casting.appendNewline`: Controls whether the editor should insert a newline after selecting a pattern from the completion list. If set to `auto`, only appends a newline if the next line is empty or a closing bracket.
 * `hex-casting.enableDiagnostics`: Controls whether the editor should show diagnostics, such as warnings for unknown patterns.
 * `hex-casting.enabledMods`: Controls which mods are enabled. Patterns from disabled mods will not be recognized or suggested. Currently, macros will still work if Hexal is disabled, but this may change in a future update.
+* `hex-casting.inlayHints.internalName`: Enable/disable inlay hints for internal pattern names.
+* `hex-casting.inlayHints.macroName`: Enable/disable inlay hints for macro names.
 
 ## Known Issues
 
