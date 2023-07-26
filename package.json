@@ -87,6 +87,11 @@
                         "default": false,
                         "description": "Enable/disable inlay hints for internal pattern names:\n```hexpattern\nMind's Reflection/* get_caster*/\n```"
                     },
+                    "hex-casting.inlayHints.macroName": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Enable/disable inlay hints for macros:\n```hexpattern\nCounter's Queue/* (macro)*/\n```"
+                    },
                     "hex-casting.enabledMods": {
                         "type": "object",
                         "description": "Controls which mods are enabled. Patterns from disabled mods will not be recognized or suggested. Currently, macros will still work if Hexal is disabled, but this may change in a future update.",
