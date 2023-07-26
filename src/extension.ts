@@ -75,6 +75,7 @@ let shorthandLookup = makeShorthandLookup();
 let appendNewline: AppendNewline;
 let enableDiagnostics: boolean;
 let enabledMods: { [modName: string]: boolean };
+let showInternalNameHints: boolean
 
 function filterObject<V>(obj: { [key: string]: V }, callback: (entry: [string, V]) => boolean): { [key: string]: V } {
     return Object.fromEntries(Object.entries(obj).filter(callback));
@@ -83,6 +84,7 @@ function filterObject<V>(obj: { [key: string]: V }, callback: (entry: [string, V
 function updateConfiguration() {
     appendNewline = vscode.workspace.getConfiguration(rootSection).get("appendNewline")!;
     enableDiagnostics = vscode.workspace.getConfiguration(rootSection).get("enableDiagnostics")!;
+    showInternalNameHints = vscode.workspace.getConfiguration(rootSection).get("showInternalNameHints")!;
     enabledMods = vscode.workspace.getConfiguration(rootSection).get("enabledMods")!;
 
     // clone the untyped registry and only include entries where the mod is enabled
@@ -434,20 +436,20 @@ class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
         const extraItems =
             range.end.character - range.start.character <= this.extraSuffixMaxRangeLength
                 ? this.extraSuffixes.map((suffix) => ({
-                      ...makeCompletionItem(
-                          document,
-                          label + suffix,
-                          false,
-                          trimmedNextLine,
-                          range,
-                          hasTextAfter,
-                          patternInfo,
-                      ),
-                      kind: undefined,
-                      preselect: false,
-                      filterText: text + suffix,
-                      sortText: specialExtraSortPrefix + text + suffix,
-                  }))
+                    ...makeCompletionItem(
+                        document,
+                        label + suffix,
+                        false,
+                        trimmedNextLine,
+                        range,
+                        hasTextAfter,
+                        patternInfo,
+                    ),
+                    kind: undefined,
+                    preselect: false,
+                    filterText: text + suffix,
+                    sortText: specialExtraSortPrefix + text + suffix,
+                }))
                 : [];
 
         return [
@@ -706,6 +708,46 @@ class MacroInlayHintsProvider implements vscode.InlayHintsProvider {
                     vscode.InlayHintKind.Type,
                 );
                 hints.push(hint);
+            }
+        }
+
+        return hints;
+    }
+}
+
+class PatternInlayHintsProvider implements vscode.InlayHintsProvider {
+    provideInlayHints(
+        document: vscode.TextDocument,
+        range: vscode.Range,
+        _token: vscode.CancellationToken,
+    ): vscode.ProviderResult<vscode.InlayHint[]> {
+        console.log("hi" + showInternalNameHints);
+        if (!showInternalNameHints) return;
+        console.log(showInternalNameHints);
+
+        const lines = document.getText(range).split("\n");
+        const hints = [];
+
+        let inComment = false;
+
+        for (const [i, line] of lines.entries()) {
+            const match = getPatternFromLine(line);
+
+            if (match != null && match.pattern != "{" && match.pattern != "}") {
+                const translation = prepareTranslation(match.pattern);
+                if (isInDefaultRegistry(translation)) {
+                    const patternInfo = getFromRegistry(document, translation)!;
+
+                    const line = range.start.line + i;
+                    const character = (i == 0 ? range.start.character : 0) + match.prefix.length + match.pattern.length;
+
+                    const hint = new vscode.InlayHint(
+                        new vscode.Position(line, character),
+                        ` ${patternInfo.name}`,
+                        vscode.InlayHintKind.Type,
+                    );
+                    hints.push(hint);
+                }
             }
         }
 
@@ -1010,6 +1052,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         // inlay hints
         vscode.languages.registerInlayHintsProvider(selector, new MacroInlayHintsProvider()),
+        vscode.languages.registerInlayHintsProvider(selector, new PatternInlayHintsProvider()),
 
         // configuration
         vscode.workspace.onDidChangeConfiguration((e) => {

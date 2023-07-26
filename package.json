@@ -82,6 +82,11 @@
                         "default": true,
                         "description": "Controls whether the editor should show diagnostics, such as warnings for unknown patterns."
                     },
+                    "hex-casting.showInternalNameHints": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Controls whether the editor should display the internal name of each pattern."
+                    },
                     "hex-casting.enabledMods": {
                         "type": "object",
                         "description": "Controls which mods are enabled. Patterns from disabled mods will not be recognized or suggested. Currently, macros will still work if Hexal is disabled, but this may change in a future update.",
