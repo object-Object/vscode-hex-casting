@@ -85,7 +85,7 @@
                     "hex-casting.inlayHints.internalName": {
                         "type": "boolean",
                         "default": false,
-                        "description": "Controls whether the editor should display the internal name of each pattern."
+                        "description": "Enable/disable inlay hints for internal pattern names:\n```hexpattern\nMind's Reflection/* get_caster*/\n```"
                     },
                     "hex-casting.enabledMods": {
                         "type": "object",
