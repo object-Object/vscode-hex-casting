@@ -85,12 +85,12 @@
                     "hex-casting.inlayHints.internalName": {
                         "type": "boolean",
                         "default": false,
-                        "description": "Enable/disable inlay hints for internal pattern names"
+                        "description": "Enable/disable inlay hints for internal pattern names."
                     },
                     "hex-casting.inlayHints.macroName": {
                         "type": "boolean",
                         "default": true,
-                        "description": "Enable/disable inlay hints for macros"
+                        "description": "Enable/disable inlay hints for macros."
                     },
                     "hex-casting.enabledMods": {
                         "type": "object",
