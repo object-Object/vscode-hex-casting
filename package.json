@@ -82,7 +82,7 @@
                         "default": true,
                         "description": "Controls whether the editor should show diagnostics, such as warnings for unknown patterns."
                     },
-                    "hex-casting.showInternalNameHints": {
+                    "hex-casting.inlayHints.internalName": {
                         "type": "boolean",
                         "default": false,
                         "description": "Controls whether the editor should display the internal name of each pattern."
