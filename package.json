@@ -85,12 +85,12 @@
                     "hex-casting.inlayHints.internalName": {
                         "type": "boolean",
                         "default": false,
-                        "description": "Enable/disable inlay hints for internal pattern names."
+                        "markdownDescription": "Enable/disable inlay hints for internal pattern names:\n\n```Mind's Reflection``` *get_caster*"
                     },
                     "hex-casting.inlayHints.macroName": {
                         "type": "boolean",
                         "default": true,
-                        "description": "Enable/disable inlay hints for macros."
+                        "markdownDescription": "Enable/disable inlay hints for macros:\n\n```Counter's Queue``` *(macro)*"
                     },
                     "hex-casting.enabledMods": {
                         "type": "object",
