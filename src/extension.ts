@@ -75,6 +75,8 @@ let shorthandLookup = makeShorthandLookup();
 let appendNewline: AppendNewline;
 let enableDiagnostics: boolean;
 let enabledMods: { [modName: string]: boolean };
+let showInternalNameHints: boolean;
+let showMacroNameHints: boolean;
 
 function filterObject<V>(obj: { [key: string]: V }, callback: (entry: [string, V]) => boolean): { [key: string]: V } {
     return Object.fromEntries(Object.entries(obj).filter(callback));
@@ -83,6 +85,8 @@ function filterObject<V>(obj: { [key: string]: V }, callback: (entry: [string, V
 function updateConfiguration() {
     appendNewline = vscode.workspace.getConfiguration(rootSection).get("appendNewline")!;
     enableDiagnostics = vscode.workspace.getConfiguration(rootSection).get("enableDiagnostics")!;
+    showInternalNameHints = vscode.workspace.getConfiguration(rootSection).get("inlayHints.internalName")!;
+    showMacroNameHints = vscode.workspace.getConfiguration(rootSection).get("inlayHints.macroName")!;
     enabledMods = vscode.workspace.getConfiguration(rootSection).get("enabledMods")!;
 
     // clone the untyped registry and only include entries where the mod is enabled
@@ -706,7 +710,7 @@ class DiagnosticsProvider implements vscode.DocumentLinkProvider {
     }
 }
 
-class MacroInlayHintsProvider implements vscode.InlayHintsProvider {
+class PatternInlayHintsProvider implements vscode.InlayHintsProvider {
     provideInlayHints(
         document: vscode.TextDocument,
         range: vscode.Range,
@@ -719,16 +723,29 @@ class MacroInlayHintsProvider implements vscode.InlayHintsProvider {
 
         for (const [i, line] of lines.entries()) {
             const match = getPatternFromLine(line);
-            if (match != null && isInMacroRegistry(document, match.pattern)) {
-                const line = range.start.line + i;
-                const character = (i == 0 ? range.start.character : 0) + match.prefix.length + match.pattern.length;
 
-                const hint = new vscode.InlayHint(
-                    new vscode.Position(line, character),
-                    " (macro)",
-                    vscode.InlayHintKind.Type,
-                );
-                hints.push(hint);
+            if (match != null && match.pattern != "{" && match.pattern != "}") {
+                const translation = prepareTranslation(match.pattern);
+
+                let hint_text;
+                if (showMacroNameHints && isInMacroRegistry(document, match.pattern)) {
+                    hint_text = "(macro)";
+                } else if (showInternalNameHints && isInDefaultRegistry(translation)) {
+                    const patternInfo = getFromRegistry(document, translation)!;
+                    hint_text = `${patternInfo.name}`;
+                }
+
+                if (hint_text != null) {
+                    const line = range.start.line + i;
+                    const character = (i == 0 ? range.start.character : 0) + match.prefix.length + match.pattern.length;
+
+                    const hint = new vscode.InlayHint(
+                        new vscode.Position(line, character),
+                        ` ${hint_text}`,
+                        vscode.InlayHintKind.Type,
+                    );
+                    hints.push(hint);
+                }
             }
         }
 
@@ -1032,7 +1049,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.languages.registerHoverProvider(selector, new PatternHoverProvider()),
 
         // inlay hints
-        vscode.languages.registerInlayHintsProvider(selector, new MacroInlayHintsProvider()),
+        vscode.languages.registerInlayHintsProvider(selector, new PatternInlayHintsProvider()),
 
         // configuration
         vscode.workspace.onDidChangeConfiguration((e) => {
