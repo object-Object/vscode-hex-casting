@@ -5,6 +5,7 @@ import showInputBox from "./showInputBox";
 
 interface PatternInfo {
     name?: string;
+    modid: string;
     modName: string;
     image: {
         filename: string;
@@ -27,6 +28,7 @@ class MacroPatternInfo implements PatternInfo {
     public args: string | null;
 
     public modName = "macro";
+    public modid = "macro";
     public image = null;
     public url = null;
 
@@ -35,7 +37,6 @@ class MacroPatternInfo implements PatternInfo {
     }
 }
 
-type AppendNewline = "always" | "auto" | "never";
 type Registry<T extends PatternInfo> = { [translation: string]: T };
 type ShorthandLookup = { [shorthand: string]: string };
 
@@ -72,29 +73,44 @@ function makeShorthandLookup(): ShorthandLookup {
 
 let shorthandLookup = makeShorthandLookup();
 
-let appendNewline: AppendNewline;
-let enableDiagnostics: boolean;
-let enabledMods: { [modName: string]: boolean };
-let showInternalNameHints: boolean;
-let showMacroNameHints: boolean;
+interface Configuration {
+    appendNewline: "always" | "auto" | "never";
+    inlayHints: {
+        internalNames: {
+            enabled: boolean;
+            modID: {
+                hexCasting: boolean;
+                otherMods: boolean;
+            };
+        };
+        macros: {
+            enabled: boolean;
+        };
+    };
+    enabledMods: { [modName: string]: boolean };
+}
+
+let config: Configuration;
+let diagnosticsEnabled: boolean;
 
 function filterObject<V>(obj: { [key: string]: V }, callback: (entry: [string, V]) => boolean): { [key: string]: V } {
     return Object.fromEntries(Object.entries(obj).filter(callback));
 }
 
 function updateConfiguration() {
-    appendNewline = vscode.workspace.getConfiguration(rootSection).get("appendNewline")!;
-    enableDiagnostics = vscode.workspace.getConfiguration(rootSection).get("enableDiagnostics")!;
-    showInternalNameHints = vscode.workspace.getConfiguration(rootSection).get("inlayHints.internalName")!;
-    showMacroNameHints = vscode.workspace.getConfiguration(rootSection).get("inlayHints.macroName")!;
-    enabledMods = vscode.workspace.getConfiguration(rootSection).get("enabledMods")!;
+    // load configuration
+    let workspaceConfiguration = vscode.workspace.getConfiguration(rootSection);
+    config = workspaceConfiguration as unknown as Configuration;
+
+    // handle deprecated option
+    diagnosticsEnabled = workspaceConfiguration.enableDiagnostics ?? workspaceConfiguration.diagnostics.enabled;
 
     // clone the untyped registry and only include entries where the mod is enabled
     defaultRegistry = filterObject(JSON.parse(JSON.stringify(untypedRegistry)), ([_, { modName }]) => {
-        if (!enabledMods.hasOwnProperty(modName)) {
+        if (!config.enabledMods.hasOwnProperty(modName)) {
             throw new Error(`Mod missing from config option hex-casting.enabledMods: "${modName}"`);
         }
-        return enabledMods[modName];
+        return config.enabledMods[modName];
     });
     shorthandLookup = makeShorthandLookup();
 }
@@ -141,7 +157,7 @@ function makeDocumentation(
 function getInsertTextSuffix(hasParam: boolean, trimmedNextLine: string, hasTextAfter: boolean): string {
     if (hasParam) return ": ";
     if (hasTextAfter) return "";
-    switch (appendNewline) {
+    switch (config.appendNewline) {
         case "always":
             return "\n";
         case "auto":
@@ -536,19 +552,25 @@ class PatternHoverProvider implements vscode.HoverProvider {
 
 // ew.
 const patternRe =
-    /^(?<prefix>[ \t]*)(?<escape>Consideration: *)?(?!\/\/|\/\*| )(?<pattern>(?:[a-zA-Z0-9:'+\-\./ _]+?|[{}\[\]]))(?= *(?:\/\/|\/\*|{|}|$))/gm;
+    /^(?<prefix>[ \t]*)(?<escape>Consideration: *)?(?!\/\/|\/\*| )(?<pattern>(?:[a-zA-Z0-9:'+\-\./ _]+?|[{}\[\]]))(?: *<(?<iota>.+?)>)?(?= *(?:\/\/|\/\*|{|$))/gm;
 
 interface PatternMatch {
     prefix: string;
     pattern: string;
     isEscaped: boolean;
+    iota?: string;
 }
 
 function getPatternFromLine(text: string): PatternMatch | undefined {
     patternRe.lastIndex = 0;
     const groups = patternRe.exec(text.trimEnd())?.groups;
     return groups
-        ? { prefix: groups.prefix + (groups.escape ?? ""), pattern: groups.pattern, isEscaped: !!groups.escape }
+        ? {
+              prefix: groups.prefix + (groups.escape ?? ""),
+              pattern: groups.pattern,
+              isEscaped: !!groups.escape,
+              iota: groups.iota,
+          }
         : undefined;
 }
 
@@ -562,13 +584,11 @@ function getPatternsFromText(text: string): PatternMatch[] {
 const patternDiagnosticsSource = "hex-casting.pattern";
 const directiveDiagnosticsSource = "hex-casting.directive";
 
-function refreshDiagnostics(
+function refreshDirectivesAndDiagnostics(
     document: vscode.TextDocument,
     patternCollection: vscode.DiagnosticCollection,
     directiveCollection: vscode.DiagnosticCollection,
 ): void {
-    if (!enableDiagnostics) return;
-
     const patternDiagnostics: vscode.Diagnostic[] = [];
     const directiveDiagnostics: vscode.Diagnostic[] = [];
 
@@ -689,8 +709,10 @@ function refreshDiagnostics(
         }
     }
 
-    patternCollection.set(document.uri, patternDiagnostics);
-    directiveCollection.set(document.uri, directiveDiagnostics);
+    if (diagnosticsEnabled) {
+        patternCollection.set(document.uri, patternDiagnostics);
+        directiveCollection.set(document.uri, directiveDiagnostics);
+    }
 
     macroRegistry.set(document.uri, newMacroRegistry);
 }
@@ -705,7 +727,7 @@ class DiagnosticsProvider implements vscode.DocumentLinkProvider {
         document: vscode.TextDocument,
         token: vscode.CancellationToken,
     ): vscode.ProviderResult<vscode.DocumentLink[]> {
-        refreshDiagnostics(document, this.patternCollection, this.directiveCollection);
+        refreshDirectivesAndDiagnostics(document, this.patternCollection, this.directiveCollection);
         return;
     }
 }
@@ -719,34 +741,47 @@ class PatternInlayHintsProvider implements vscode.InlayHintsProvider {
         const lines = document.getText(range).split("\n");
         const hints = [];
 
-        let inComment = false;
+        for (const [i, lineText] of lines.entries()) {
+            const match = getPatternFromLine(lineText);
 
-        for (const [i, line] of lines.entries()) {
-            const match = getPatternFromLine(line);
+            if (
+                match == null ||
+                match.pattern == "{" ||
+                match.pattern == "}" ||
+                match.pattern == "Consideration:" ||
+                match.iota != null
+            )
+                continue;
 
-            if (match != null && match.pattern != "{" && match.pattern != "}") {
-                const translation = prepareTranslation(match.pattern);
+            const translation = prepareTranslation(match.pattern);
 
-                let hint_text;
-                if (showMacroNameHints && isInMacroRegistry(document, match.pattern)) {
-                    hint_text = "(macro)";
-                } else if (showInternalNameHints && isInDefaultRegistry(translation)) {
-                    const patternInfo = getFromRegistry(document, translation)!;
-                    hint_text = `${patternInfo.name}`;
-                }
+            let hintText;
+            if (config.inlayHints.macros.enabled && isInMacroRegistry(document, translation)) {
+                hintText = "(macro)";
+            } else if (config.inlayHints.internalNames.enabled && isInDefaultRegistry(translation)) {
+                const patternInfo = getFromRegistry(document, translation)!;
 
-                if (hint_text != null) {
-                    const line = range.start.line + i;
-                    const character = (i == 0 ? range.start.character : 0) + match.prefix.length + match.pattern.length;
-
-                    const hint = new vscode.InlayHint(
-                        new vscode.Position(line, character),
-                        ` ${hint_text}`,
-                        vscode.InlayHintKind.Type,
-                    );
-                    hints.push(hint);
+                const isFromHex = patternInfo.modid == "hexcasting";
+                if (
+                    (config.inlayHints.internalNames.modID.hexCasting && isFromHex) ||
+                    (config.inlayHints.internalNames.modID.otherMods && !isFromHex)
+                ) {
+                    hintText = `${patternInfo.modid}:${patternInfo.name}`;
+                } else {
+                    hintText = patternInfo.name;
                 }
             }
+            if (hintText == null) continue;
+
+            const line = range.start.line + i;
+            const character = (i == 0 ? range.start.character : 0) + match.prefix.length + match.pattern.length;
+
+            const hint = new vscode.InlayHint(
+                new vscode.Position(line, character),
+                ` <${hintText}>`,
+                vscode.InlayHintKind.Type,
+            );
+            hints.push(hint);
         }
 
         return hints;
@@ -1023,7 +1058,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     let document: vscode.TextDocument | undefined;
     if ((document = vscode.window.activeTextEditor?.document) && vscode.languages.match(selector, document)) {
-        refreshDiagnostics(document, patternCollection, directiveCollection);
+        refreshDirectivesAndDiagnostics(document, patternCollection, directiveCollection);
     }
 
     context.subscriptions.push(
@@ -1056,7 +1091,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (e.affectsConfiguration("hex-casting")) {
                 updateConfiguration();
 
-                if (!enableDiagnostics) {
+                if (!diagnosticsEnabled) {
                     patternCollection.clear();
                     directiveCollection.clear();
                 }
@@ -1068,7 +1103,7 @@ export function activate(context: vscode.ExtensionContext) {
         directiveCollection,
         vscode.window.onDidChangeActiveTextEditor((editor) => {
             if (editor && vscode.languages.match(selector, editor.document)) {
-                refreshDiagnostics(editor.document, patternCollection, directiveCollection);
+                refreshDirectivesAndDiagnostics(editor.document, patternCollection, directiveCollection);
             }
         }),
         // because onDidChangeTextDocument fires way too often

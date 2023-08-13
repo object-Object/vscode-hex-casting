@@ -23,6 +23,7 @@
 #define Foo's Reflection = int -> int
  #define Foo =
  define Foo
+#define Counter's Queue (e)
 
 Foo's Reflection
 Foo's Purification
@@ -43,6 +44,10 @@ Consideration
 Flay Mind
 {
     Mind's Reflection
+    Counter's Queue
+    Timekeeper's Reflection
+    Mind's Reflection <iota goes here>
+
     Bookkeeper's Gambit: v
     Bookkeeper's Gambit: -
     Consideration: Consideration

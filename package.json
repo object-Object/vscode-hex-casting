@@ -32,7 +32,8 @@
                 "id": "hexcasting",
                 "aliases": [
                     "Hex Casting",
-                    "hexcasting"
+                    "hexcasting",
+                    "hexpattern"
                 ],
                 "extensions": [
                     ".hexpattern",
@@ -77,20 +78,38 @@
                         ],
                         "description": "Controls whether the editor should insert a newline after selecting a pattern from the completion list."
                     },
-                    "hex-casting.enableDiagnostics": {
+                    "hex-casting.diagnostics.enabled": {
                         "type": "boolean",
                         "default": true,
                         "description": "Controls whether the editor should show diagnostics, such as warnings for unknown patterns."
                     },
-                    "hex-casting.inlayHints.internalName": {
+                    "hex-casting.enableDiagnostics": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ],
+                        "default": null,
+                        "markdownDeprecationMessage": "Deprecated: Please use `#hex-casting.diagnostics.enabled#` instead."
+                    },
+                    "hex-casting.inlayHints.internalNames.enabled": {
                         "type": "boolean",
                         "default": false,
-                        "markdownDescription": "Enable/disable inlay hints for internal pattern names:\n\n```Mind's Reflection``` *get_caster*"
+                        "markdownDescription": "Enable/disable inlay hints for internal pattern names:\n```hexpattern\nMind's Reflection/* <get_caster>*/\n```"
                     },
-                    "hex-casting.inlayHints.macroName": {
+                    "hex-casting.inlayHints.internalNames.modID.hexCasting": {
+                        "type": "boolean",
+                        "default": false,
+                        "markdownDescription": "Add the mod ID to internal pattern names from Hex Casting:\n```hexpattern\nMind's Reflection/* <hexcasting:get_caster>*/\n```"
+                    },
+                    "hex-casting.inlayHints.internalNames.modID.otherMods": {
+                        "type": "boolean",
+                        "default": false,
+                        "markdownDescription": "Add the mod ID to internal pattern names from addons:\n```hexpattern\nSummon Cyclic Wisp/* <hexal:wisp/summon/ticking>*/\n```"
+                    },
+                    "hex-casting.inlayHints.macros.enabled": {
                         "type": "boolean",
                         "default": true,
-                        "markdownDescription": "Enable/disable inlay hints for macros:\n\n```Counter's Queue``` *(macro)*"
+                        "markdownDescription": "Enable/disable inlay hints for macros:\n```hexpattern\nCounter's Queue/* <(macro)>*/\n```"
                     },
                     "hex-casting.enabledMods": {
                         "type": "object",
