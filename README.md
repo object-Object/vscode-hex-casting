@@ -17,7 +17,7 @@ To get release notifications, go to the [GitHub repo](https://github.com/object-
 * Pattern hover text with name, arguments, mod name, angle signature, and a picture of the stroke order
 * C-style line and block comments
 * Snippets to speed up your workflow
-* `#define` support for Brigh's Gambit macros
+* `#define` and `#include` support for Brigh's Gambit macros
 * Language diagnostics/linting to highlight unknown patterns and invalid directives
 * And more!
 
@@ -26,10 +26,12 @@ To get release notifications, go to the [GitHub repo](https://github.com/object-
 This extension contributes the following settings:
 
 * `hex-casting.appendNewline`: Controls whether the editor should insert a newline after selecting a pattern from the completion list. If set to `auto`, only appends a newline if the next line is empty or a closing bracket.
-* `hex-casting.enableDiagnostics`: Controls whether the editor should show diagnostics, such as warnings for unknown patterns.
+* `hex-casting.diagnostics.enabled`: Controls whether the editor should show diagnostics, such as warnings for unknown patterns.
+* `hex-casting.inlayHints.internalNames.enabled`: Enable/disable inlay hints for internal pattern names.
+* `hex-casting.inlayHints.internalNames.modID.hexCasting`: Add the mod ID to internal pattern names from Hex Casting.
+* `hex-casting.inlayHints.internalNames.modID.otherMods`: Add the mod ID to internal pattern names from addons.
+* `hex-casting.inlayHints.macros.enabled`: Enable/disable inlay hints for macros.
 * `hex-casting.enabledMods`: Controls which mods are enabled. Patterns from disabled mods will not be recognized or suggested. Currently, macros will still work if Hexal is disabled, but this may change in a future update.
-* `hex-casting.inlayHints.internalName`: Enable/disable inlay hints for internal pattern names.
-* `hex-casting.inlayHints.macroName`: Enable/disable inlay hints for macro names.
 
 ## Known Issues
 
