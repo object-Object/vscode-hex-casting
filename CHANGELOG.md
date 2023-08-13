@@ -1,6 +1,20 @@
-# Change Log
+# Changelog
 
 All notable changes to the "hex-casting" extension will be documented in this file.
+
+## [0.1.23] - 2023-07-12
+
+### Additions
+
+- Add `#include` directive for importing macros from other files
+  - Syntax: `#include "./path/to/file.hexpattern"`
+  - Paths are always relative to the file containing the `#include` and must start with `./` or `../`
+  - Circular imports are permitted
+- Add inlay hints for internal pattern names (contributed by Master-Bw3 in #9)
+
+### Changes
+
+- Error messages for invalid `#define` directives will now give more helpful hints when possible (#8)
 
 ## [0.1.22] - 2023-06-28
 

@@ -93,6 +93,13 @@
                     "name": "punctuation.definition.directive",
                     "match": "^#|[()]"
                 },
+                { "include": "#define" },
+                { "include": "#include" }
+            ]
+        },
+        "define": {
+            "name": "hexcasting.directive.define",
+            "patterns": [
                 {
                     "name": "keyword.control.directive.define",
                     "match": "(?<=^#)define"
@@ -119,6 +126,30 @@
                 {
                     "name": "entity.name.function.preprocessor",
                     "match": ".+?(?=\\()"
+                }
+            ]
+        },
+        "include": {
+            "name": "hexcasting.directive.include",
+            "patterns": [
+                {
+                    "name": "keyword.control.directive.include",
+                    "match": "(?<=^#)include"
+                },
+                {
+                    "name": "string.quoted.double",
+                    "begin": "(\")",
+                    "end": "(\")",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "punctuation.definition.string.begin"
+                        }
+                    },
+                    "endCaptures": {
+                        "1": {
+                            "name": "punctuation.definition.string.end"
+                        }
+                    }
                 }
             ]
         }

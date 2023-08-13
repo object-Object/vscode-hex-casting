@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import untypedRegistry from "./data/registry.json";
 import untypedShorthandLookup from "./data/shorthand.json";
 import showInputBox from "./showInputBox";
+import { normalize, parse } from "path";
 
 interface PatternInfo {
     name?: string;
@@ -46,8 +47,14 @@ const selector: vscode.DocumentSelector = [
     { scheme: "file", language: "hexcasting" },
     { scheme: "untitled", language: "hexcasting" },
 ];
+
 let defaultRegistry: Registry<DefaultPatternInfo> = untypedRegistry;
-const macroRegistry: Map<vscode.Uri, Registry<MacroPatternInfo>> = new Map();
+
+const macroRegistries: Map<string, Registry<MacroPatternInfo>> = new Map();
+const macroRegistriesWithImports: Map<string, Registry<MacroPatternInfo>> = new Map();
+
+const currentlyLoading: Set<string> = new Set();
+
 const themePaths = {
     [vscode.ColorThemeKind.Dark]: "dark/",
     [vscode.ColorThemeKind.HighContrast]: "dark/",
@@ -208,7 +215,7 @@ function isInMacroRegistry(
     translation: string,
     newRegistry?: Registry<MacroPatternInfo>,
 ): boolean {
-    const documentMacros = newRegistry ?? macroRegistry.get(document.uri);
+    const documentMacros = newRegistry ?? macroRegistriesWithImports.get(document.uri.fsPath);
     return documentMacros ? Object.prototype.hasOwnProperty.call(documentMacros, translation) : false;
 }
 
@@ -217,11 +224,11 @@ function isInRegistry(document: vscode.TextDocument, translation: string): boole
 }
 
 function getFromRegistry(document: vscode.TextDocument, translation: string): PatternInfo | undefined {
-    return defaultRegistry[translation] ?? macroRegistry.get(document.uri)?.[translation];
+    return defaultRegistry[translation] ?? macroRegistriesWithImports.get(document.uri.fsPath)?.[translation];
 }
 
 function getRegistryEntries(document: vscode.TextDocument): [string, PatternInfo][] {
-    const documentMacros = macroRegistry.get(document.uri);
+    const documentMacros = macroRegistriesWithImports.get(document.uri.fsPath);
     return Object.entries<PatternInfo>(defaultRegistry).concat(documentMacros ? Object.entries(documentMacros) : []);
 }
 
@@ -303,9 +310,10 @@ function makeCompletionList(
 
 const defineRe =
     /^(?<directionPrefix>(?<directive>#define[ \t]+)(?=[^ \t])(?<translation>[^(\n]+?)[ \t]*\([ \t]*)(?<direction>[a-zA-Z_\-]+)(?:[ \t]+(?<pattern>[aqwedsAQWEDS]+))?[ \t]*\)[ \t]*(?:=[ \t]*(?=[^ \t])(?<args>.+?)[ \t]*)?(?:\/\/|\/\*|$)/;
+const includeRe = /^#include[ \t]+"(?<path>.+?)"(?:\/\/|\/\*|$)/;
 
 function shouldSkipCompletions(line: string): boolean {
-    return /\S\s|\/\/|\/\*/.test(line.replace(/Consideration:/g, "")) || defineRe.test(line);
+    return /\S\s|\/\/|\/\*/.test(line.replace(/Consideration:/g, "")) || defineRe.test(line) || includeRe.test(line);
 }
 
 function getTrimmedNextLine(document: vscode.TextDocument, position: vscode.Position): string {
@@ -581,140 +589,311 @@ function getPatternsFromText(text: string): PatternMatch[] {
     });
 }
 
+async function forEachNonCommentLine(
+    document: string[],
+    callback: (line: string, lineIndex: number) => void | Promise<void>,
+): Promise<void>;
+
+async function forEachNonCommentLine(
+    document: vscode.TextDocument,
+    callback: (line: vscode.TextLine, lineIndex: number) => void | Promise<void>,
+): Promise<void>;
+
+async function forEachNonCommentLine(
+    document: vscode.TextDocument | string[],
+    callback: (line: any, lineIndex: number) => void | Promise<void>,
+) {
+    let inComment = false;
+    let lineCount = Array.isArray(document) ? document.length : document.lineCount;
+
+    for (let lineIndex = 0; lineIndex < lineCount; lineIndex++) {
+        let line, lineText;
+        if (Array.isArray(document)) {
+            line = lineText = document[lineIndex];
+        } else {
+            line = document.lineAt(lineIndex);
+            lineText = line.text;
+        }
+
+        if (!inComment) {
+            if (/\/\*((?!\*\/).)*$/.test(lineText)) {
+                inComment = true;
+                continue;
+            }
+            await callback(line, lineIndex);
+        } else if (/\*\/((?!\/\*).)*$/.test(lineText)) {
+            inComment = false;
+        }
+    }
+}
+
+async function loadIncludedFile(
+    document: vscode.TextDocument,
+    lineText: string,
+    patternCollection: vscode.DiagnosticCollection,
+    directiveCollection: vscode.DiagnosticCollection,
+): Promise<Registry<MacroPatternInfo> | Error | undefined> {
+    if (!/^#include([^a-zA-Z]|$)/.test(lineText) || /^[^#]*\/\/.*#include/.test(lineText)) return;
+
+    // show diagnostics
+    const includeMatch = includeRe.exec(lineText);
+
+    if (includeMatch == null) {
+        let causes = [];
+        if (!/^#include/.test(lineText)) {
+            causes.push("illegal whitespace at start of line");
+        }
+
+        if (/^#include\s*$/.test(lineText)) {
+            causes.push("missing file path");
+        } else if (!/^#include\s*".+"/.test(lineText)) {
+            causes.push("missing double quotes around file path");
+        }
+
+        // in case nothing matched, make sure it still looks all nice and pretty
+        // this is copypasta, but so is literally everything else in this extension, so I don't care
+        let message = "Malformed #include directive";
+        if (causes.length > 1) {
+            message += `:\n- ${causes.join("\n- ")}`;
+        } else if (causes.length == 1) {
+            message += `: ${causes[0]}.`;
+        } else {
+            message += ".";
+        }
+
+        return new Error(message);
+    }
+
+    // load the actual macros
+
+    if (document.uri.scheme !== "file") {
+        return new Error(
+            `Can't use #include because the current file is not saved on disk (expected scheme file, got ${document.uri.scheme}).`,
+        );
+    }
+
+    const { path: relativePath } = includeMatch.groups!;
+    if (!relativePath.startsWith("./") && !relativePath.startsWith("../")) {
+        return new Error("Path must start with ./ or ../ (ie. must be relative to the current file).");
+    }
+
+    const documentDir = parse(document.uri.fsPath).dir;
+    let importUri = document.uri.with({ path: normalize(`${documentDir}/${relativePath}`) });
+
+    if (document.uri.fsPath === importUri.fsPath) {
+        return new Error(`Self-imports are not permitted.`);
+    }
+
+    // if the uri isn't in macroRegistries, load the document
+    if (!macroRegistries.has(importUri.fsPath)) {
+        output.appendLine(`Loading: ${importUri.fsPath}`);
+
+        // hopefully this never happens
+        if (currentlyLoading.has(importUri.fsPath)) {
+            const paths = [...currentlyLoading].join(", ");
+            const message = `Infinite loop detected while importing. Please report this error to the extension developer. Paths: ${paths}`;
+
+            vscode.window.showErrorMessage(message);
+            return new Error(message);
+        }
+
+        currentlyLoading.add(importUri.fsPath);
+        try {
+            const openedDocument = await vscode.workspace.openTextDocument(importUri);
+            await refreshDirectivesAndDiagnostics(openedDocument, patternCollection, directiveCollection);
+        } catch (error) {
+            return new Error(`Failed to load "${importUri.fsPath}": ${error}`);
+        } finally {
+            currentlyLoading.delete(importUri.fsPath);
+        }
+    }
+
+    // if the uri *still* isn't in macroRegistries, show a diagnostic
+    // otherwise go ahead and return the imported macros
+    return (
+        macroRegistries.get(importUri.fsPath) ??
+        new Error(`File "${importUri.fsPath}" couldn't be loaded or is not a hexpattern file.`)
+    );
+}
+
 const patternDiagnosticsSource = "hex-casting.pattern";
 const directiveDiagnosticsSource = "hex-casting.directive";
 
-function refreshDirectivesAndDiagnostics(
+async function refreshDirectivesAndDiagnostics(
     document: vscode.TextDocument,
     patternCollection: vscode.DiagnosticCollection,
     directiveCollection: vscode.DiagnosticCollection,
-): void {
+): Promise<void> {
     const patternDiagnostics: vscode.Diagnostic[] = [];
     const directiveDiagnostics: vscode.Diagnostic[] = [];
 
     const newMacroRegistry: Registry<MacroPatternInfo> = {};
+    let newMacroRegistryWithImports: Registry<MacroPatternInfo> = {};
 
-    let inComment = false;
+    // local macros
+    await forEachNonCommentLine(document, (line, lineIndex) => {
+        if (!/#define([^a-zA-Z]|$)/.test(line.text) || /^[^#]*\/\/.*#define/.test(line.text)) return;
 
-    for (let lineIndex = 0; lineIndex < document.lineCount; lineIndex++) {
-        const line = document.lineAt(lineIndex);
+        const defineMatch = defineRe.exec(line.text);
 
-        if (!inComment) {
-            // pattern diagnostics
-            const match = getPatternFromLine(line.text);
-            if (match != null && !isInRegistry(document, prepareTranslation(match.pattern))) {
-                const start = new vscode.Position(lineIndex, match.prefix.length);
-                const end = start.translate({ characterDelta: match.pattern.length });
+        if (defineMatch == null) {
+            // hopefully more helpful error messages for broken #define
+            let causes = [];
+            if (!/^#define/.test(line.text)) {
+                causes.push("illegal whitespace at start of line");
+            }
+            if (/^#define\s*(\(|=|\/\/|\/\*|$)/.test(line.text)) {
+                causes.push("missing name");
+            }
+            if (!/\(.+\)/.test(line.text)) {
+                causes.push("missing angle signature");
+            }
+            if (/^[^=]+=\s*(\/\/|\/\*|$)/.test(line.text)) {
+                causes.push("missing args after `=`");
+            }
 
-                patternDiagnostics.push({
-                    range: new vscode.Range(start, end),
-                    message: `Unknown pattern: "${match.pattern}".`,
-                    severity: vscode.DiagnosticSeverity.Warning,
-                    source: patternDiagnosticsSource,
+            // in case nothing matched, make sure it still looks all nice and pretty
+            let message = "Malformed #define directive";
+            if (causes.length > 1) {
+                message += `:\n- ${causes.join("\n- ")}`;
+            } else if (causes.length == 1) {
+                message += `: ${causes[0]}.`;
+            } else {
+                message += ".";
+            }
+
+            directiveDiagnostics.push({
+                range: line.range,
+                message,
+                severity: vscode.DiagnosticSeverity.Error,
+                source: directiveDiagnosticsSource,
+            });
+            return;
+        }
+
+        const {
+            directionPrefix,
+            directive,
+            translation,
+            direction: rawDirection,
+            pattern,
+            args,
+        } = defineMatch.groups as {
+            [key: string]: string;
+        } & { args: string | undefined };
+
+        const nameStart = new vscode.Position(lineIndex, directive.length);
+        const nameEnd = nameStart.translate({ characterDelta: translation.length });
+        const nameRange = new vscode.Range(nameStart, nameEnd);
+
+        const directionStart = new vscode.Position(lineIndex, directionPrefix.length);
+        const directionEnd = directionStart.translate({ characterDelta: rawDirection.length });
+        const directionRange = new vscode.Range(directionStart, directionEnd);
+
+        const newDiagnostics = [];
+
+        const direction = prepareDirection(rawDirection);
+        if (!direction) {
+            newDiagnostics.push({
+                range: directionRange,
+                message: `Invalid direction "${rawDirection}".`,
+                severity: vscode.DiagnosticSeverity.Error,
+                source: directiveDiagnosticsSource,
+            });
+        }
+
+        if (isInDefaultRegistry(prepareTranslation(translation))) {
+            newDiagnostics.push({
+                range: nameRange,
+                message: `Pattern "${translation}" already exists.`,
+                severity: vscode.DiagnosticSeverity.Error,
+                source: directiveDiagnosticsSource,
+            });
+        } else if (isInMacroRegistry(document, translation, newMacroRegistryWithImports)) {
+            newDiagnostics.push({
+                range: nameRange,
+                message: `Macro "${translation}" is defined in a previous #define directive.`,
+                severity: vscode.DiagnosticSeverity.Error,
+                source: directiveDiagnosticsSource,
+            });
+        }
+
+        // only add the macro to the registry if there were no errors
+        if (newDiagnostics.length) {
+            directiveDiagnostics.push(...newDiagnostics);
+            return;
+        }
+
+        newMacroRegistryWithImports[translation] = newMacroRegistry[translation] = new MacroPatternInfo(
+            direction!,
+            pattern,
+            args?.replace(/\-\>/g, "→"),
+        );
+    });
+    macroRegistries.set(document.uri.fsPath, newMacroRegistry);
+
+    // imported macros
+    await forEachNonCommentLine(document, async (line) => {
+        let importedMacros = await loadIncludedFile(document, line.text, patternCollection, directiveCollection);
+        if (importedMacros == null) return;
+        if (importedMacros instanceof Error) {
+            directiveDiagnostics.push({
+                range: line.range,
+                message: importedMacros.message,
+                severity: vscode.DiagnosticSeverity.Error,
+                source: directiveDiagnosticsSource,
+            });
+            return;
+        }
+
+        // check for conflicts
+        let hasConflict = false;
+        for (const translation of Object.keys(importedMacros)) {
+            if (isInMacroRegistry(document, translation, newMacroRegistryWithImports)) {
+                directiveDiagnostics.push({
+                    range: line.range,
+                    message: `Macro "${translation}" is also defined in another imported file.`,
+                    severity: vscode.DiagnosticSeverity.Error,
+                    source: directiveDiagnosticsSource,
                 });
             }
 
-            // #define diagnostics
-            if (/#define([^a-zA-Z]|$)/.test(line.text)) {
-                const match = defineRe.exec(line.text);
-
-                if (match == null) {
-                    // hopefully more helpful error messages for broken #define
-                    let causes = [];
-                    if (!/^#define/.test(line.text)) {
-                        causes.push("illegal whitespace at start of line");
-                    }
-                    if (!/\(.+\)/.test(line.text)) {
-                        causes.push("missing angle signature");
-                    }
-                    if (/^[^=]+=\s*(\/\/|\/\*|$)/.test(line.text)) {
-                        causes.push("missing args after `=`");
-                    }
-
-                    // in case nothing matched, make sure it still looks all nice and pretty
-                    let message = "Malformed #define directive";
-                    if (causes.length > 1) {
-                        message += `:\n- ${causes.join("\n- ")}`;
-                    } else if (causes.length == 1) {
-                        message += `: ${causes[0]}.`;
-                    } else {
-                        message += ".";
-                    }
-
-                    directiveDiagnostics.push({
-                        range: line.range,
-                        message,
-                        severity: vscode.DiagnosticSeverity.Error,
-                        source: directiveDiagnosticsSource,
-                    });
-                } else {
-                    const {
-                        directionPrefix,
-                        directive,
-                        translation,
-                        direction: rawDirection,
-                        pattern,
-                        args,
-                    } = match.groups as {
-                        [key: string]: string;
-                    } & { args: string | undefined };
-
-                    const nameStart = new vscode.Position(lineIndex, directive.length);
-                    const nameEnd = nameStart.translate({ characterDelta: translation.length });
-                    const nameRange = new vscode.Range(nameStart, nameEnd);
-
-                    const directionStart = new vscode.Position(lineIndex, directionPrefix.length);
-                    const directionEnd = directionStart.translate({ characterDelta: rawDirection.length });
-                    const directionRange = new vscode.Range(directionStart, directionEnd);
-
-                    const direction = prepareDirection(rawDirection);
-                    if (!direction) {
-                        directiveDiagnostics.push({
-                            range: directionRange,
-                            message: `Invalid direction "${rawDirection}".`,
-                            severity: vscode.DiagnosticSeverity.Error,
-                            source: directiveDiagnosticsSource,
-                        });
-                    }
-
-                    if (isInDefaultRegistry(prepareTranslation(translation))) {
-                        directiveDiagnostics.push({
-                            range: nameRange,
-                            message: `Pattern "${translation}" already exists.`,
-                            severity: vscode.DiagnosticSeverity.Error,
-                            source: directiveDiagnosticsSource,
-                        });
-                    } else if (isInMacroRegistry(document, translation, newMacroRegistry)) {
-                        directiveDiagnostics.push({
-                            range: nameRange,
-                            message: `Pattern "${translation}" is defined in a previous #define directive.`,
-                            severity: vscode.DiagnosticSeverity.Error,
-                            source: directiveDiagnosticsSource,
-                        });
-                    } else if (direction) {
-                        newMacroRegistry[translation] = new MacroPatternInfo(
-                            direction,
-                            pattern,
-                            args?.replace(/\-\>/g, "→"),
-                        );
-                    }
-                }
+            if (isInMacroRegistry(document, translation, newMacroRegistry)) {
+                directiveDiagnostics.push({
+                    range: line.range,
+                    message: `Macro "${translation}" is also defined in this file.`,
+                    severity: vscode.DiagnosticSeverity.Error,
+                    source: directiveDiagnosticsSource,
+                });
             }
-
-            if (/\/\*((?!\*\/).)*$/.test(line.text)) {
-                inComment = true;
-            }
-        } else if (/\*\/((?!\/\*).)*$/.test(line.text)) {
-            inComment = false;
         }
-    }
+        if (hasConflict) return;
+
+        // add to registry
+        newMacroRegistryWithImports = { ...newMacroRegistryWithImports, ...importedMacros };
+    });
+    macroRegistriesWithImports.set(document.uri.fsPath, newMacroRegistryWithImports);
+
+    // patterns
+    await forEachNonCommentLine(document, (line, lineIndex) => {
+        const patternMatch = getPatternFromLine(line.text);
+        if (patternMatch != null && !isInRegistry(document, prepareTranslation(patternMatch.pattern))) {
+            const start = new vscode.Position(lineIndex, patternMatch.prefix.length);
+            const end = start.translate({ characterDelta: patternMatch.pattern.length });
+
+            patternDiagnostics.push({
+                range: new vscode.Range(start, end),
+                message: `Unknown pattern: "${patternMatch.pattern}".`,
+                severity: vscode.DiagnosticSeverity.Warning,
+                source: patternDiagnosticsSource,
+            });
+        }
+    });
 
     if (diagnosticsEnabled) {
         patternCollection.set(document.uri, patternDiagnostics);
         directiveCollection.set(document.uri, directiveDiagnostics);
     }
-
-    macroRegistry.set(document.uri, newMacroRegistry);
 }
 
 class DiagnosticsProvider implements vscode.DocumentLinkProvider {
@@ -727,21 +906,22 @@ class DiagnosticsProvider implements vscode.DocumentLinkProvider {
         document: vscode.TextDocument,
         token: vscode.CancellationToken,
     ): vscode.ProviderResult<vscode.DocumentLink[]> {
-        refreshDirectivesAndDiagnostics(document, this.patternCollection, this.directiveCollection);
-        return;
+        return refreshDirectivesAndDiagnostics(document, this.patternCollection, this.directiveCollection).then(
+            () => null,
+        );
     }
 }
 
 class PatternInlayHintsProvider implements vscode.InlayHintsProvider {
-    provideInlayHints(
+    async provideInlayHints(
         document: vscode.TextDocument,
         range: vscode.Range,
         _token: vscode.CancellationToken,
-    ): vscode.ProviderResult<vscode.InlayHint[]> {
-        const lines = document.getText(range).split("\n");
-        const hints = [];
+    ): Promise<vscode.InlayHint[]> {
+        const lines = document.getText(range).split(/\n|\r\n/);
+        const hints: vscode.InlayHint[] = [];
 
-        for (const [i, lineText] of lines.entries()) {
+        await forEachNonCommentLine(lines, (lineText, i) => {
             const match = getPatternFromLine(lineText);
 
             if (
@@ -751,7 +931,7 @@ class PatternInlayHintsProvider implements vscode.InlayHintsProvider {
                 match.pattern == "Consideration:" ||
                 match.iota != null
             )
-                continue;
+                return;
 
             const translation = prepareTranslation(match.pattern);
 
@@ -771,7 +951,7 @@ class PatternInlayHintsProvider implements vscode.InlayHintsProvider {
                     hintText = patternInfo.name;
                 }
             }
-            if (hintText == null) continue;
+            if (hintText == null) return;
 
             const line = range.start.line + i;
             const character = (i == 0 ? range.start.character : 0) + match.prefix.length + match.pattern.length;
@@ -782,7 +962,7 @@ class PatternInlayHintsProvider implements vscode.InlayHintsProvider {
                 vscode.InlayHintKind.Type,
             );
             hints.push(hint);
-        }
+        });
 
         return hints;
     }
@@ -1050,7 +1230,7 @@ async function copySelectionAsBBCodeCommand({ selection, document }: vscode.Text
     vscode.window.showInformationMessage("Copied BBCode for selected patterns.");
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     updateConfiguration();
 
     const patternCollection = vscode.languages.createDiagnosticCollection("hex-casting.patterns");
@@ -1058,7 +1238,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     let document: vscode.TextDocument | undefined;
     if ((document = vscode.window.activeTextEditor?.document) && vscode.languages.match(selector, document)) {
-        refreshDirectivesAndDiagnostics(document, patternCollection, directiveCollection);
+        await refreshDirectivesAndDiagnostics(document, patternCollection, directiveCollection);
     }
 
     context.subscriptions.push(

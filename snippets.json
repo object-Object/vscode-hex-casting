@@ -3,15 +3,19 @@
         "prefix": "\\{}",
         "body": ["Consideration: {", "\t$0", "Consideration: }"]
     },
-    "#define": {
-        "prefix": "#def",
+    "define": {
+        "prefix": "def",
         "body": [
             "#define ${1/(\\S+)/${1:/capitalize}/g} ($2) =${3/^\\s+|\\s+$|^(?!\\s)|(?<!\\s)$/ /g}->${4/^\\s+|^(?!\\s)/ /g}",
             "$0"
         ]
     },
-    "#define (no args)": {
-        "prefix": "#defna",
+    "define (no args)": {
+        "prefix": "defna",
         "body": ["#define ${1/(\\S+)/${1:/capitalize}/g} ($2)", "$0"]
+    },
+    "include": {
+        "prefix": "inc",
+        "body": ["#include \"./$1\"", "$0"]
     }
 }
