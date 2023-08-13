@@ -2,7 +2,11 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
-## [0.1.23] - 2023-07-12
+## [0.1.24] - 2023-08-13
+
+Version bump to update the README and fix an incorrect date in the changelog. Oops.
+
+## [0.1.23] - 2023-08-13
 
 ### Additions
 
