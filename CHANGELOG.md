@@ -2,6 +2,12 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.25] - 2023-08-14
+
+### Mod Updates
+
+- Hexal: 0.2.18
+
 ## [0.1.24] - 2023-08-13
 
 Version bump to update the README and fix an incorrect date in the changelog. Oops.
