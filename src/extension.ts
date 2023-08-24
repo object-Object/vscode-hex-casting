@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import untypedRegistry from "./data/registry.json";
 import untypedShorthandLookup from "./data/shorthand.json";
 import showInputBox from "./showInputBox";
+import numbers2000 from "./data/numbers_2000.json";
 import { normalize, parse } from "path";
 
 interface PatternInfo {
@@ -53,7 +54,7 @@ let defaultRegistry: Registry<DefaultPatternInfo> = untypedRegistry;
 const macroRegistries: Map<string, Registry<MacroPatternInfo>> = new Map();
 const macroRegistriesWithImports: Map<string, Registry<MacroPatternInfo>> = new Map();
 
-const currentlyLoading: Set<string> = new Set();
+const currentlyLoading: Map<string, number> = new Map();
 
 const themePaths = {
     [vscode.ColorThemeKind.Dark]: "dark/",
@@ -689,7 +690,8 @@ async function loadIncludedFile(
         output.appendLine(`Loading: ${importUri.fsPath}`);
 
         // hopefully this never happens
-        if (currentlyLoading.has(importUri.fsPath)) {
+        let loadCount = currentlyLoading.get(importUri.fsPath) ?? 0;
+        if (loadCount > 256) {
             const paths = [...currentlyLoading].join(", ");
             const message = `Infinite loop detected while importing. Please report this error to the extension developer. Paths: ${paths}`;
 
@@ -697,7 +699,7 @@ async function loadIncludedFile(
             return new Error(message);
         }
 
-        currentlyLoading.add(importUri.fsPath);
+        currentlyLoading.set(importUri.fsPath, loadCount);
         try {
             const openedDocument = await vscode.workspace.openTextDocument(importUri);
             await refreshDirectivesAndDiagnostics(openedDocument, patternCollection, directiveCollection);
@@ -1105,9 +1107,15 @@ function validateAngleSignature(value: string): string | undefined {
     if (!value) return "Field is required.";
 }
 
-const numbers = new Map<number, { direction: Direction; pattern: string }>();
+const numbers = new Map<number, { direction: Direction; pattern: string }>(
+    Object.entries(numbers2000).map(([num, [direction, pattern]]) => [
+        parseInt(num),
+        { direction: prepareDirection(direction)!, pattern },
+    ]),
+);
 
-async function copySelectionAsBBCodeCommand({ selection, document }: vscode.TextEditor): Promise<void> {
+// converts the current primary selection to a list of patterns, prompting the user for an angle signature for any unknown numbers
+async function getSelectionPatterns({ selection, document }: vscode.TextEditor) {
     const diagnostics = vscode.languages
         .getDiagnostics(document.uri)
         .filter((diagnostic) => diagnostic.source === patternDiagnosticsSource && selection.contains(diagnostic.range));
@@ -1117,7 +1125,7 @@ async function copySelectionAsBBCodeCommand({ selection, document }: vscode.Text
         return;
     }
 
-    const patterns: (PatternInfo & { num?: number; translation: string })[] = [];
+    const patterns: (PatternInfo & { num?: number; translation: string; param?: string })[] = [];
     const unknownNumbers = new Set<number>();
 
     for (const { pattern: translation, isEscaped } of getPatternsFromText(document.getText(selection))) {
@@ -1137,6 +1145,7 @@ async function copySelectionAsBBCodeCommand({ selection, document }: vscode.Text
                     ...patternInfo,
                     translation,
                     ...generateBookkeeper(param!),
+                    param,
                 });
                 break;
 
@@ -1146,6 +1155,7 @@ async function copySelectionAsBBCodeCommand({ selection, document }: vscode.Text
                     ...patternInfo,
                     translation,
                     num,
+                    param,
                 });
                 if (!numbers.has(num)) unknownNumbers.add(num);
                 break;
@@ -1154,6 +1164,7 @@ async function copySelectionAsBBCodeCommand({ selection, document }: vscode.Text
                 patterns.push({
                     ...patternInfo,
                     translation,
+                    name: patternInfo.modName !== "macro" ? patternInfo.name : undefined,
                 });
         }
     }
@@ -1187,6 +1198,13 @@ async function copySelectionAsBBCodeCommand({ selection, document }: vscode.Text
             numbers.set(num, { direction, pattern });
         }
     }
+
+    return patterns;
+}
+
+async function copySelectionAsBBCodeCommand(editor: vscode.TextEditor): Promise<void> {
+    let patterns = await getSelectionPatterns(editor);
+    if (patterns == null) return;
 
     let bbCode = `[pcolor=${getBBCodeColor(0)}]`;
     let indent = 0;
@@ -1228,6 +1246,29 @@ async function copySelectionAsBBCodeCommand({ selection, document }: vscode.Text
     bbCode += "[/pcolor]";
     vscode.env.clipboard.writeText(bbCode);
     vscode.window.showInformationMessage("Copied BBCode for selected patterns.");
+}
+
+async function copySelectionAsListCommand(editor: vscode.TextEditor): Promise<void> {
+    let patterns = await getSelectionPatterns(editor);
+    if (patterns == null) return;
+
+    let list = [];
+
+    for (const { name, translation, num, param, ...rest } of patterns) {
+        let { direction, pattern } = num != undefined ? numbers.get(num) ?? rest : rest;
+
+        if (name != null) {
+            list.push(param ? `${name} ${param}` : name);
+        } else if (direction != null) {
+            direction = shortenDirection(direction);
+            list.push(pattern ? `${direction} ${pattern}` : direction);
+        } else {
+            list.push(translation);
+        }
+    }
+
+    vscode.env.clipboard.writeText(list.join(","));
+    vscode.window.showInformationMessage("Copied selected patterns as a list for rendering with HexBug.");
 }
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -1310,6 +1351,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // commands
         vscode.commands.registerTextEditorCommand("hex-casting.copySelectionAsBBCode", copySelectionAsBBCodeCommand),
+        vscode.commands.registerTextEditorCommand("hex-casting.copySelectionAsList", copySelectionAsListCommand),
     );
 }
 

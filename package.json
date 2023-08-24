@@ -160,6 +160,11 @@
                 "command": "hex-casting.copySelectionAsBBCode",
                 "title": "Copy Selection as BBCode",
                 "enablement": "editorLangId == hexcasting && editorHasSelection && !editorHasMultipleSelections"
+            },
+            {
+                "command": "hex-casting.copySelectionAsList",
+                "title": "Copy Selection as List",
+                "enablement": "editorLangId == hexcasting && editorHasSelection && !editorHasMultipleSelections"
             }
         ],
         "menus": {

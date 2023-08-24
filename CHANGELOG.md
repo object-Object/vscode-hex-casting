@@ -2,6 +2,16 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.26] - 2023-08-24
+
+### Additions
+
+- Add command to copy selection as a list for rendering with HexBug's `/patterns hex`.
+
+### Changes
+
+- Copy as BBCode and Copy as List will now use a lookup table for number literals between -2000 and 2000.
+
 ## [0.1.25] - 2023-08-14
 
 ### Mod Updates
