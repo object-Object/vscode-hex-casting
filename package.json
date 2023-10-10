@@ -132,6 +132,9 @@
                             },
                             "Hexbound": {
                                 "type": "boolean"
+                            },
+                            "Mediaworks": {
+                                "type": "boolean"
                             }
                         },
                         "required": [
@@ -140,7 +143,8 @@
                             "MoreIotas",
                             "HexTweaks",
                             "HexKinetics",
-                            "Hexbound"
+                            "Hexbound",
+                            "Mediaworks"
                         ],
                         "additionalProperties": false,
                         "default": {
@@ -149,7 +153,8 @@
                             "MoreIotas": true,
                             "HexTweaks": true,
                             "HexKinetics": true,
-                            "Hexbound": true
+                            "Hexbound": true,
+                            "Mediaworks": true
                         }
                     }
                 }

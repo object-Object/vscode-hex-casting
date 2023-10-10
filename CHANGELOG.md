@@ -2,6 +2,12 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.27] - 2023-10-09
+
+### Additions
+
+- Add support for Mediaworks.
+
 ## [0.1.26] - 2023-08-24
 
 ### Additions
