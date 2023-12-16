@@ -113,7 +113,7 @@
                     },
                     "hex-casting.enabledMods": {
                         "type": "object",
-                        "description": "Controls which mods are enabled. Patterns from disabled mods will not be recognized or suggested. Currently, macros will still work if Hexal is disabled, but this may change in a future update.",
+                        "description": "Controls which mods are enabled. Patterns from disabled mods will not be recognized or suggested. Macros will still work if Hexal is disabled.",
                         "properties": {
                             "Hex Casting": {
                                 "type": "boolean"
@@ -135,17 +135,15 @@
                             },
                             "Mediaworks": {
                                 "type": "boolean"
+                            },
+                            "Hex Gloop": {
+                                "type": "boolean"
+                            },
+                            "Oneironaut": {
+                                "type": "boolean"
                             }
                         },
-                        "required": [
-                            "Hex Casting",
-                            "Hexal",
-                            "MoreIotas",
-                            "HexTweaks",
-                            "HexKinetics",
-                            "Hexbound",
-                            "Mediaworks"
-                        ],
+                        "required": [],
                         "additionalProperties": false,
                         "default": {
                             "Hex Casting": true,
@@ -154,7 +152,9 @@
                             "HexTweaks": true,
                             "HexKinetics": true,
                             "Hexbound": true,
-                            "Mediaworks": true
+                            "Mediaworks": true,
+                            "Hex Gloop": true,
+                            "Oneironaut": true
                         }
                     }
                 }

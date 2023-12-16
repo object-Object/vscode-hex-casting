@@ -2,6 +2,12 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.28] - 2023-12-16
+
+### Additions
+
+- Add support for Hex Gloop and Oneironaut.
+
 ## [0.1.27] - 2023-10-09
 
 ### Additions
