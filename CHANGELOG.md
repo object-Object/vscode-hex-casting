@@ -2,6 +2,14 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.29] - 2023-12-27
+
+### Mod Updates
+
+- Hex Gloop: 0.2.1 (unreleased)
+- Oneironaut: 0.1.2
+- Mediaworks: 1.0.5
+
 ## [0.1.28] - 2023-12-16
 
 ### Additions
