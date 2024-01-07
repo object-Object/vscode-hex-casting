@@ -2,6 +2,12 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.30] - 2024-01-06
+
+### Mod Updates
+
+- Oneironaut: 0.2.1
+
 ## [0.1.29] - 2023-12-27
 
 ### Mod Updates
