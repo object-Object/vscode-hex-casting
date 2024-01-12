@@ -4,43 +4,7 @@ import untypedShorthandLookup from "./data/shorthand.json";
 import showInputBox from "./showInputBox";
 import numbers2000 from "./data/numbers_2000.json";
 import { normalize, parse } from "path";
-
-interface PatternInfo {
-    name?: string;
-    modid: string;
-    modName: string;
-    image: {
-        filename: string;
-        height: number;
-        width: number;
-    } | null;
-    direction: string | null;
-    pattern: string | null;
-    args: string | null;
-    url: string | null;
-}
-
-interface DefaultPatternInfo extends PatternInfo {
-    name: string;
-}
-
-type Direction = "EAST" | "SOUTH_EAST" | "SOUTH_WEST" | "WEST" | "NORTH_WEST" | "NORTH_EAST";
-
-class MacroPatternInfo implements PatternInfo {
-    public args: string | null;
-
-    public modName = "macro";
-    public modid = "macro";
-    public image = null;
-    public url = null;
-
-    constructor(public direction: Direction, public pattern: string, args?: string) {
-        this.args = args ?? null;
-    }
-}
-
-type Registry<T extends PatternInfo> = { [translation: string]: T };
-type ShorthandLookup = { [shorthand: string]: string };
+import { BBCodeError, generatePatternBBCode } from "./patterns/bbcode";
 
 const rootSection = "hex-casting";
 const output = vscode.window.createOutputChannel("Hex Casting");
@@ -183,28 +147,6 @@ function prepareTranslation(text: string): string {
             /(?<=Bookkeeper's Gambit):\s*[v-]+|(?<=Numerical Reflection):\s*-?(?:\d*\.\d*|\d+)|(?<=Consideration):.*/g,
             "",
         );
-}
-
-function shortenDirection(rawDirection: string): string {
-    return rawDirection
-        .toLowerCase()
-        .replace(/[_\-]/g, "")
-        .replace("north", "n")
-        .replace("south", "s")
-        .replace("west", "w")
-        .replace("east", "e");
-}
-
-function prepareDirection(rawDirection: string): Direction | undefined {
-    const lookup: { [key: string]: Direction | undefined } = {
-        e: "EAST",
-        se: "SOUTH_EAST",
-        sw: "SOUTH_WEST",
-        w: "WEST",
-        nw: "NORTH_WEST",
-        ne: "NORTH_EAST",
-    };
-    return lookup[shortenDirection(rawDirection)];
 }
 
 function isInDefaultRegistry(translation: string): boolean {
@@ -1062,14 +1004,6 @@ class ExpandAllShorthandProvider implements vscode.CodeActionProvider {
     }
 }
 
-const bbCodeColors = ["orange", "yellow", "lightgreen", "cyan", "pink"];
-
-function getBBCodeColor(indent: number): string {
-    if (indent < 0) return "red";
-    if (indent == 0) return "#9966cc";
-    return bbCodeColors[(indent - 1) % bbCodeColors.length];
-}
-
 function generateBookkeeper(mask: string): { direction: Direction; pattern: string } {
     let direction: Direction, pattern: string;
     if (mask[0] == "v") {
@@ -1107,7 +1041,7 @@ function validateAngleSignature(value: string): string | undefined {
     if (!value) return "Field is required.";
 }
 
-const numbers = new Map<number, { direction: Direction; pattern: string }>(
+const NUMBER_LITERALS = new Map<number, { direction: Direction; pattern: string }>(
     Object.entries(numbers2000).map(([num, [direction, pattern]]) => [
         parseInt(num),
         { direction: prepareDirection(direction)!, pattern },
@@ -1157,7 +1091,7 @@ async function getSelectionPatterns({ selection, document }: vscode.TextEditor) 
                     num,
                     param,
                 });
-                if (!numbers.has(num)) unknownNumbers.add(num);
+                if (!NUMBER_LITERALS.has(num)) unknownNumbers.add(num);
                 break;
 
             default:
@@ -1195,7 +1129,7 @@ async function getSelectionPatterns({ selection, document }: vscode.TextEditor) 
 
             const [rawDirection, pattern] = result.split(" ");
             const direction = prepareDirection(rawDirection)!;
-            numbers.set(num, { direction, pattern });
+            NUMBER_LITERALS.set(num, { direction, pattern });
         }
     }
 
@@ -1203,47 +1137,18 @@ async function getSelectionPatterns({ selection, document }: vscode.TextEditor) 
 }
 
 async function copySelectionAsBBCodeCommand(editor: vscode.TextEditor): Promise<void> {
-    let patterns = await getSelectionPatterns(editor);
+    const patterns = await getSelectionPatterns(editor);
     if (patterns == null) return;
 
-    let bbCode = `[pcolor=${getBBCodeColor(0)}]`;
-    let indent = 0;
-    let isEscaped = false;
-    let stopEscape = false;
-
-    for (const { name, translation, num, ...rest } of patterns) {
-        const { direction, pattern } = num != undefined ? numbers.get(num) ?? rest : rest;
-
-        // consider color
-        if (isEscaped) {
-            if (stopEscape) {
-                isEscaped = false;
-                stopEscape = false;
-            } else {
-                stopEscape = true;
-            }
-        }
-        if (name === "escape" && !isEscaped) isEscaped = true;
-        const color = isEscaped ? ` color=${getBBCodeColor(0)}` : "";
-
-        // retro color
-        if (name === "close_paren" && !isEscaped) bbCode += `[/pcolor][pcolor=${getBBCodeColor(--indent)}]`;
-
-        // the actual pattern
-        if (pattern != null && direction != null) {
-            bbCode += `[pat=${pattern!} dir=${shortenDirection(direction!)}${color}]`;
-        } else if (name != null) {
-            bbCode += `[pat=${name}${color}]`;
-        } else {
-            vscode.window.showErrorMessage(`Couldn't generate BBCode for "${translation}".`);
-            return;
-        }
-
-        // intro color
-        if (name === "open_paren" && !isEscaped) bbCode += `[/pcolor][pcolor=${getBBCodeColor(++indent)}]`;
+    let bbCode;
+    try {
+        bbCode = generatePatternBBCode(patterns, NUMBER_LITERALS);
+    } catch (e) {
+        if (!(e instanceof BBCodeError)) throw e;
+        vscode.window.showErrorMessage(e.message);
+        return;
     }
 
-    bbCode += "[/pcolor]";
     vscode.env.clipboard.writeText(bbCode);
     vscode.window.showInformationMessage("Copied BBCode for selected patterns.");
 }
@@ -1255,7 +1160,7 @@ async function copySelectionAsListCommand(editor: vscode.TextEditor): Promise<vo
     let list = [];
 
     for (const { name, translation, num, param, ...rest } of patterns) {
-        let { direction, pattern } = num != undefined ? numbers.get(num) ?? rest : rest;
+        let { direction, pattern } = num != undefined ? NUMBER_LITERALS.get(num) ?? rest : rest;
 
         if (name != null) {
             list.push(param ? `${name} ${param}` : name);
