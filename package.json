@@ -168,6 +168,12 @@
                 "category": "Hex Casting"
             },
             {
+                "command": "hex-casting.copySelectedMacroAsForumPost",
+                "title": "Copy Selection as Macro Forum Post",
+                "enablement": "editorLangId == hexcasting && editorHasSelection && !editorHasMultipleSelections",
+                "category": "Hex Casting"
+            },
+            {
                 "command": "hex-casting.copySelectionAsList",
                 "title": "Copy Selection as List",
                 "enablement": "editorLangId == hexcasting && editorHasSelection && !editorHasMultipleSelections",

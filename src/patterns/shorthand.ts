@@ -1,4 +1,6 @@
-function shortenDirection(rawDirection: string): string {
+import { Direction } from "./types";
+
+export function shortenDirection(rawDirection: string): string {
     return rawDirection
         .toLowerCase()
         .replace(/[_\-]/g, "")
@@ -8,7 +10,7 @@ function shortenDirection(rawDirection: string): string {
         .replace("east", "e");
 }
 
-function prepareDirection(rawDirection: string): Direction | undefined {
+export function prepareDirection(rawDirection: string): Direction | undefined {
     const lookup: { [key: string]: Direction | undefined } = {
         e: "EAST",
         se: "SOUTH_EAST",

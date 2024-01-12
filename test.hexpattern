@@ -226,3 +226,19 @@ bar
 /**/
 
 /**/
+
+#define Encyclopedist's Exaltation (EAST aqqqqqeqaqqqqq) = int, int, vec -> any
+{
+    Chronicler's Purification
+    Jester's Gambit
+    Selection Distillation
+}
+
+#define Encyclopedist's Exaltation II (EAST aqqqqqeqaqqqqq) = int, int, vec -> any
+// address, heap size, heap location -> value
+// reads a value from an address in the heap
+{
+    Chronicler's Purification
+    Jester's Gambit
+    Selection Distillation
+}

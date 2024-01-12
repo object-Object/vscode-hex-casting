@@ -1,9 +1,9 @@
-interface PatternSignature {
+export interface PatternSignature {
     direction: Direction;
     pattern: string;
 }
 
-interface PatternInfo {
+export interface PatternInfo {
     name?: string;
     modid: string;
     modName: string;
@@ -18,13 +18,13 @@ interface PatternInfo {
     url: string | null;
 }
 
-interface DefaultPatternInfo extends PatternInfo {
+export interface DefaultPatternInfo extends PatternInfo {
     name: string;
 }
 
-type Direction = "EAST" | "SOUTH_EAST" | "SOUTH_WEST" | "WEST" | "NORTH_WEST" | "NORTH_EAST";
+export type Direction = "EAST" | "SOUTH_EAST" | "SOUTH_WEST" | "WEST" | "NORTH_WEST" | "NORTH_EAST";
 
-class MacroPatternInfo implements PatternInfo {
+export class MacroPatternInfo implements PatternInfo {
     public args: string | null;
 
     public modName = "macro";
@@ -37,6 +37,6 @@ class MacroPatternInfo implements PatternInfo {
     }
 }
 
-type Registry<T extends PatternInfo> = { [translation: string]: T };
+export type Registry<T extends PatternInfo> = { [translation: string]: T };
 
-type ShorthandLookup = { [shorthand: string]: string };
+export type ShorthandLookup = { [shorthand: string]: string };

@@ -5,6 +5,15 @@ import showInputBox from "./showInputBox";
 import numbers2000 from "./data/numbers_2000.json";
 import { normalize, parse } from "path";
 import { BBCodeError, generatePatternBBCode } from "./patterns/bbcode";
+import { prepareDirection, shortenDirection } from "./patterns/shorthand";
+import {
+    DefaultPatternInfo,
+    Direction,
+    MacroPatternInfo,
+    PatternInfo,
+    Registry,
+    ShorthandLookup,
+} from "./patterns/types";
 
 const rootSection = "hex-casting";
 const output = vscode.window.createOutputChannel("Hex Casting");
@@ -253,7 +262,17 @@ function makeCompletionList(
 
 const defineRe =
     /^(?<directionPrefix>(?<directive>#define[ \t]+)(?=[^ \t])(?<translation>[^(\n]+?)[ \t]*\([ \t]*)(?<direction>[a-zA-Z_\-]+)(?:[ \t]+(?<pattern>[aqwedsAQWEDS]+))?[ \t]*\)[ \t]*(?:=[ \t]*(?=[^ \t])(?<args>.+?)[ \t]*)?(?:\/\/|\/\*|$)/;
+
 const includeRe = /^#include[ \t]+"(?<path>.+?)"(?:\/\/|\/\*|$)/;
+
+interface DefineRegexGroups {
+    directionPrefix: string;
+    directive: string;
+    translation: string;
+    direction: string;
+    pattern: string;
+    args: string | undefined;
+}
 
 function shouldSkipCompletions(line: string): boolean {
     return /\S\s|\/\/|\/\*/.test(line.replace(/Consideration:/g, "")) || defineRe.test(line) || includeRe.test(line);
@@ -722,9 +741,7 @@ async function refreshDirectivesAndDiagnostics(
             direction: rawDirection,
             pattern,
             args,
-        } = defineMatch.groups as {
-            [key: string]: string;
-        } & { args: string | undefined };
+        } = defineMatch.groups as unknown as DefineRegexGroups;
 
         const nameStart = new vscode.Position(lineIndex, directive.length);
         const nameEnd = nameStart.translate({ characterDelta: translation.length });
@@ -1049,20 +1066,26 @@ const NUMBER_LITERALS = new Map<number, { direction: Direction; pattern: string 
 );
 
 // converts the current primary selection to a list of patterns, prompting the user for an angle signature for any unknown numbers
-async function getSelectionPatterns({ selection, document }: vscode.TextEditor) {
+async function getSelectionPatterns({ selection, document }: vscode.TextEditor, selectedText?: string) {
     const diagnostics = vscode.languages
         .getDiagnostics(document.uri)
-        .filter((diagnostic) => diagnostic.source === patternDiagnosticsSource && selection.contains(diagnostic.range));
+        .filter(
+            (diagnostic) =>
+                (diagnostic.source === patternDiagnosticsSource || diagnostic.source === directiveDiagnosticsSource) &&
+                selection.contains(diagnostic.range),
+        );
 
     if (diagnostics.length) {
-        vscode.window.showErrorMessage("Selection contains unknown patterns.");
+        vscode.window.showErrorMessage("Selection contains errors and/or unknown patterns.");
         return;
     }
 
     const patterns: (PatternInfo & { num?: number; translation: string; param?: string })[] = [];
     const unknownNumbers = new Set<number>();
 
-    for (const { pattern: translation, isEscaped } of getPatternsFromText(document.getText(selection))) {
+    for (const { pattern: translation, isEscaped } of getPatternsFromText(
+        selectedText ?? document.getText(selection),
+    )) {
         const patternInfo = getFromRegistry(document, prepareTranslation(translation))!;
         const param = /: (.+)/.exec(translation)?.[1];
 
@@ -1151,6 +1174,73 @@ async function copySelectionAsBBCodeCommand(editor: vscode.TextEditor): Promise<
 
     vscode.env.clipboard.writeText(bbCode);
     vscode.window.showInformationMessage("Copied BBCode for selected patterns.");
+}
+
+const FORUM_POST_REGEX = /(?<directive>#define .+$)\n(?:(?<comment>(?:^\s*\/\/+.*\n?)+)\n)?(?<patterns>(?:.|\n)+)/gm;
+
+interface ForumPostRegexGroups {
+    directive: string;
+    comment: string | undefined;
+    patterns: string;
+}
+
+async function copySelectedMacroAsForumPostCommand(editor: vscode.TextEditor): Promise<void> {
+    const selectedText = editor.document.getText(editor.selection).trim();
+
+    // waugh
+    // replace \r\n with \n because otherwise it fails to match with CRLF line endings
+    // use matchAll.next.value because otherwise it only finds the first named group?????
+    const forumPostMatch = selectedText.replace(/\r\n/g, "\n").matchAll(FORUM_POST_REGEX).next().value;
+
+    if (!forumPostMatch) {
+        vscode.window.showErrorMessage(
+            "Unsupported macro format. Must start with #define, then an optional comment, then at least one pattern. Multi-line comments (/* */) are not supported.",
+        );
+        return;
+    }
+
+    const {
+        directive,
+        comment: rawComment,
+        patterns: rawPatterns,
+    } = forumPostMatch.groups! as unknown as ForumPostRegexGroups;
+
+    const defineMatch = defineRe.exec(directive);
+    if (!forumPostMatch) {
+        vscode.window.showErrorMessage("Failed to parse #define directive.");
+        return;
+    }
+
+    const { translation: name, args, direction, pattern } = defineMatch?.groups! as unknown as DefineRegexGroups;
+
+    let macroInput, macroOutput;
+    if (args) {
+        [macroInput, macroOutput] = args.split("->", 2).map((s) => (s ? `[u]${s.trim()}[/u]` : ""));
+    }
+
+    const comment = rawComment?.replace(/^[ \t]*\/\/+[ \t]*/gm, "");
+
+    const patterns = await getSelectionPatterns(editor, rawPatterns);
+    if (patterns == null) return; // getSelectionPatterns prints its own errors
+
+    let bbCode;
+    try {
+        bbCode = generatePatternBBCode(patterns, NUMBER_LITERALS);
+    } catch (e) {
+        if (!(e instanceof BBCodeError)) throw e;
+        vscode.window.showErrorMessage(e.message);
+        return;
+    }
+
+    let forumPost = `[size=150]${name}[/size]\n`;
+    if (macroInput || macroOutput) forumPost += `[b]${macroInput} → ${macroOutput}[/b]\n`;
+    if (comment) forumPost += `${comment}\n`;
+    forumPost += `[pat=${pattern} dir=${shortenDirection(direction)}]
+[spoiler=Patterns]${bbCode}[/spoiler]
+[code]${selectedText}[/code]`;
+
+    vscode.env.clipboard.writeText(forumPost);
+    vscode.window.showInformationMessage("Copied BBCode forum post for selected macro.");
 }
 
 async function copySelectionAsListCommand(editor: vscode.TextEditor): Promise<void> {
@@ -1256,6 +1346,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // commands
         vscode.commands.registerTextEditorCommand("hex-casting.copySelectionAsBBCode", copySelectionAsBBCodeCommand),
+        vscode.commands.registerTextEditorCommand(
+            "hex-casting.copySelectedMacroAsForumPost",
+            copySelectedMacroAsForumPostCommand,
+        ),
         vscode.commands.registerTextEditorCommand("hex-casting.copySelectionAsList", copySelectionAsListCommand),
     );
 }

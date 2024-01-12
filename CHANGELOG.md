@@ -2,6 +2,12 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.31] - 2024-01-12
+
+### Additions
+
+- New command to generate and copy BBCode for sharing a macro on the forums.
+
 ## [0.1.30] - 2024-01-06
 
 ### Mod Updates

@@ -1,3 +1,6 @@
+import { shortenDirection } from "./shorthand";
+import { PatternInfo, PatternSignature } from "./types";
+
 export class BBCodeError extends Error {}
 
 type BBCodePatternInfo = PatternInfo & { num?: number; translation: string };
