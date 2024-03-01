@@ -141,6 +141,9 @@
                             },
                             "Oneironaut": {
                                 "type": "boolean"
+                            },
+                            "Hex Keys": {
+                                "type": "boolean"
                             }
                         },
                         "required": [],
@@ -154,7 +157,8 @@
                             "Hexbound": true,
                             "Mediaworks": true,
                             "Hex Gloop": true,
-                            "Oneironaut": true
+                            "Oneironaut": true,
+                            "Hex Keys": true
                         }
                     }
                 }

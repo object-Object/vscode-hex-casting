@@ -2,6 +2,12 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.32] - 2024-02-29
+
+### Additions
+
+- Added support for Hex Keys.
+
 ## [0.1.31] - 2024-01-12
 
 ### Additions
