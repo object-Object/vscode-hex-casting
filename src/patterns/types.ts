@@ -16,6 +16,7 @@ export interface PatternInfo {
     pattern: string | null;
     args: string | null;
     url: string | null;
+    description: string | null;
 }
 
 export interface DefaultPatternInfo extends PatternInfo {
@@ -31,6 +32,7 @@ export class MacroPatternInfo implements PatternInfo {
     public modid = "macro";
     public image = null;
     public url = null;
+    public description = null;
 
     constructor(public direction: Direction, public pattern: string, args?: string) {
         this.args = args ?? null;

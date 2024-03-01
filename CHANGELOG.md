@@ -7,6 +7,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 ### Additions
 
 - Added support for Hex Keys.
+- Added pattern descriptions to IntelliSense where available.
 
 ## [0.1.31] - 2024-01-12
 

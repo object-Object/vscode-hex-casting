@@ -99,7 +99,7 @@ function updateConfiguration() {
 // maxImageSize overrides maxImageHeight
 function makeDocumentation(
     translation: string,
-    { modName, image, direction, pattern, url }: PatternInfo,
+    { modName, image, direction, pattern, url, description }: PatternInfo,
     maxImageWidth?: number,
     maxImageHeight?: number,
 ): vscode.MarkdownString {
@@ -111,6 +111,8 @@ function makeDocumentation(
     // this feels sketchy. is there a better way to do this?
     result.baseUri = vscode.Uri.file(__dirname.replace(/out$/, "") + "images/patterns/" + themePaths[themeKind]);
     result.supportHtml = true;
+
+    if (description != null) result = result.appendMarkdown(`\n\n${description}`);
 
     if (image != null) {
         const { filename, width, height } = image;
