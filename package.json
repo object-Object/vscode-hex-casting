@@ -19,7 +19,8 @@
     },
     "categories": [
         "Programming Languages",
-        "Snippets"
+        "Snippets",
+        "Debuggers"
     ],
     "keywords": [
         "Hex Casting",
@@ -191,7 +192,48 @@
                     "when": "editorLangId == hexcasting"
                 }
             ]
-        }
+        },
+        "debuggers": [
+            {
+                "type": "hexlr",
+                "languages": [
+                    "hexcasting"
+                ],
+                "label": "Debug with Hexlr",
+                "configurationAttributes": {
+                    "launch": {
+                        "required": [
+                            "program"
+                        ],
+                        "properties": {
+                            "program": {
+                                "type": "string",
+                                "description": "Absolute path to a text file.",
+                                "default": "${file}"
+                            },
+                            "stopOnEntry": {
+                                "type": "boolean",
+                                "description": "Automatically stop after attach.",
+                                "default": true
+                            }
+                        }
+                    }
+                },
+                "initialConfigurations": [
+                    {
+                        "type": "hexlr",
+                        "request": "launch",
+                        "name": "Debug file",
+                        "program": "${file}"
+                    }
+                ]
+            }
+        ],
+        "breakpoints": [
+            {
+                "language": "hexcasting"
+            }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "yarn run compile",

@@ -14,6 +14,7 @@ import {
     Registry,
     ShorthandLookup,
 } from "./patterns/types";
+import { activateHexlrDebug } from "./debug";
 
 const rootSection = "hex-casting";
 const output = vscode.window.createOutputChannel("Hex Casting");
@@ -1354,6 +1355,8 @@ export async function activate(context: vscode.ExtensionContext) {
         ),
         vscode.commands.registerTextEditorCommand("hex-casting.copySelectionAsList", copySelectionAsListCommand),
     );
+
+    activateHexlrDebug(context);
 }
 
 export function deactivate() {}
