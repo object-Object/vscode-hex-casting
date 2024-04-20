@@ -27,6 +27,9 @@
         "Minecraft"
     ],
     "main": "./out/extension.js",
+    "activationEvents": [
+        "onDebugResolve:hexdebug"
+    ],
     "contributes": {
         "languages": [
             {
@@ -195,36 +198,41 @@
         },
         "debuggers": [
             {
-                "type": "hexlr",
+                "type": "hexdebug",
                 "languages": [
                     "hexcasting"
                 ],
-                "label": "Debug with Hexlr",
+                "label": "Debug with HexDebug",
                 "configurationAttributes": {
-                    "launch": {
-                        "required": [
-                            "program"
-                        ],
+                    "attach": {
+                        "required": [],
                         "properties": {
-                            "program": {
-                                "type": "string",
-                                "description": "Absolute path to a text file.",
-                                "default": "${file}"
-                            },
                             "stopOnEntry": {
                                 "type": "boolean",
-                                "description": "Automatically stop after attach.",
+                                "description": "Automatically pause after attaching.",
+                                "default": false
+                            },
+                            "skipNonEvalFrames": {
+                                "type": "boolean",
+                                "description": "Automatically evaluate frame types other than FrameEvaluate.",
                                 "default": true
+                            },
+                            "indentWidth": {
+                                "type": "integer",
+                                "description": "Indent width for generated sources.",
+                                "default": 4
                             }
                         }
                     }
                 },
-                "initialConfigurations": [
+                "configurationSnippets": [
                     {
-                        "type": "hexlr",
-                        "request": "launch",
-                        "name": "Debug file",
-                        "program": "${file}"
+                        "label": "HexDebug: Attach",
+                        "body": {
+                            "type": "hexdebug",
+                            "request": "attach",
+                            "name": "HexDebug: Attach"
+                        }
                     }
                 ]
             }

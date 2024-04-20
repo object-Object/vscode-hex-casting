@@ -9,7 +9,7 @@ class ServerDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {
     }
 }
 
-export function activateHexlrDebug(context: vscode.ExtensionContext) {
+export function activateHexDebug(context: vscode.ExtensionContext) {
     let factory = new ServerDescriptorFactory();
-    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory("hexlr", factory));
+    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory("hexdebug", factory));
 }
