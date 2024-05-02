@@ -2,6 +2,12 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.33] - 2024-05-02
+
+### Additions
+
+- Added support for debugging ingame hexes with [HexDebug](https://github.com/object-Object/HexDebug)!
+
 ## [0.1.32] - 2024-02-29
 
 ### Additions
