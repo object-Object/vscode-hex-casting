@@ -207,19 +207,29 @@
                     "attach": {
                         "required": [],
                         "properties": {
+                            "port": {
+                                "type": "integer",
+                                "description": "Debug adapter port.",
+                                "default": 4444
+                            },
                             "stopOnEntry": {
                                 "type": "boolean",
                                 "description": "Automatically pause after attaching.",
+                                "default": true
+                            },
+                            "stopOnExit": {
+                                "type": "boolean",
+                                "description": "Automatically pause before exiting.",
                                 "default": false
                             },
                             "skipNonEvalFrames": {
                                 "type": "boolean",
-                                "description": "Automatically evaluate frame types other than FrameEvaluate.",
+                                "description": "Automatically step through frame types other than FrameEvaluate.",
                                 "default": true
                             },
                             "indentWidth": {
                                 "type": "integer",
-                                "description": "Indent width for generated sources.",
+                                "description": "Indentation width for generated sources.",
                                 "default": 4
                             }
                         }
@@ -231,7 +241,12 @@
                         "body": {
                             "type": "hexdebug",
                             "request": "attach",
-                            "name": "HexDebug: Attach"
+                            "name": "HexDebug: Attach",
+                            "port": 4444,
+                            "stopOnEntry": true,
+                            "stopOnExit": false,
+                            "skipNonEvalFrames": true,
+                            "indentWidth": 4
                         }
                     }
                 ]
