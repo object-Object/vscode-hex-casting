@@ -2,6 +2,12 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.34] - 2024-05-18
+
+### Additions
+
+- Added support for patterns from HexDebug.
+
 ## [0.1.33] - 2024-05-02
 
 ### Additions

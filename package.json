@@ -148,6 +148,9 @@
                             },
                             "Hex Keys": {
                                 "type": "boolean"
+                            },
+                            "HexDebug": {
+                                "type": "boolean"
                             }
                         },
                         "required": [],
@@ -162,7 +165,8 @@
                             "Mediaworks": true,
                             "Hex Gloop": true,
                             "Oneironaut": true,
-                            "Hex Keys": true
+                            "Hex Keys": true,
+                            "HexDebug": true
                         }
                     }
                 }
