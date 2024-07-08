@@ -7,24 +7,24 @@ Imported
 #define Foo's Reflection = int ->[str]*/
 #define (e) = int->[str]
 #define Foo's Reflection (northeast aqweds) = int->[str] //
-#define Foo's Reflection (nse aaa) = int ->[str]
-#define Foo's Reflection (w) = int -> [str]
-#define Foo's Reflection (se d) = int -> 
-#define Foo's Reflection (sw) = -> int
-#define Foo's Reflection (ne) = ->
-#define Foo's Reflection (nw) =int->[str]
-#define Foo's Reflection(e)=int ->[str]
-#define Foo's Reflection(w)=int -> [str]
-#define Foo's Reflection (e)=int -> 
-#define Foo's Reflection(e) =-> int
-#define Foo's Reflection (e) =->
+#define Foo's Reflection1 (nse aaa) = int ->[str]
+#define Foo's Reflection2 (w) = int -> [str]
+#define Foo's Reflection3 (se d) = int -> 
+#define Foo's Reflection4 (sw) = -> int
+#define Foo's Reflection5 (ne) = ->
+#define Foo's Reflection6 (nw) =int->[str]
+#define Foo's Reflection7(e)=int ->[str]
+#define Foo's Reflection8(w)=int -> [str]
+#define Foo's Reflection9 (e)=int -> 
+#define Foo's Reflection10(e) =-> int
+#define Foo's Reflection11 (e) =->
 #define Foo's Purification (e) = int -> ["str"], int, [int, int], foo: =  
-#define Foo's Purification (e) = f -> f    
-#define Foo's Purification (e)
-#define Foo's Purification (e)
-#define Foo's Purification (e) =     
-#define Foo's Reflection
-#define Foo's Reflection = int -> int
+#define Foo's Purification1 (e) = f -> f    
+#define Foo's Purification2 (e)
+#define Foo's Purification3 (e)
+#define Foo's Purification4 (e) =     
+#define Foo's Reflection12
+#define Foo's Reflection13 = int -> int
  #define Foo =
  define Foo
 #define Counter's Queue (NORTH_EAST dadaddww)

@@ -2,6 +2,13 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.35] - 2024-07-08
+
+### Changes
+
+- `#define` directives without angle signatures (eg. `#define Custom Pattern`) are now legal.
+  - Note: the `Copy Selection as Macro Forum Post` command still requires the `#define` directive to have an angle signature.
+
 ## [0.1.34] - 2024-05-18
 
 ### Additions

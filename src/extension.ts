@@ -264,17 +264,23 @@ function makeCompletionList(
 }
 
 const defineRe =
-    /^(?<directionPrefix>(?<directive>#define[ \t]+)(?=[^ \t])(?<translation>[^(\n]+?)[ \t]*\([ \t]*)(?<direction>[a-zA-Z_\-]+)(?:[ \t]+(?<pattern>[aqwedsAQWEDS]+))?[ \t]*\)[ \t]*(?:=[ \t]*(?=[^ \t])(?<args>.+?)[ \t]*)?(?:\/\/|\/\*|$)/;
+    /^(?<directionPrefix>(?<directive>#define[ \t]+)(?=[^ \t])(?<translation>[^(\n]+?))(?:(?<directionPrefix2>[ \t]*\([ \t]*)(?<direction>[a-zA-Z_\-]+)(?:[ \t]+(?<pattern>[aqwedsAQWEDS]+))?[ \t]*\))?[ \t]*(?:=[ \t]*(?=[^ \t])(?<args>.+?)[ \t]*)?(?:\/\/|\/\*|$)/;
 
 const includeRe = /^#include[ \t]+"(?<path>.+?)"(?:\/\/|\/\*|$)/;
 
 interface DefineRegexGroups {
+    // these are to calculate character positions, i guess :/
     directionPrefix: string;
+    directionPrefix2?: string;
+    // actual #define and whitespace
     directive: string;
+    // name of pattern
     translation: string;
-    direction: string;
-    pattern: string;
-    args: string | undefined;
+    // signature
+    direction?: string;
+    pattern?: string;
+    // inputs -> outputs
+    args?: string;
 }
 
 function shouldSkipCompletions(line: string): boolean {
@@ -711,9 +717,6 @@ async function refreshDirectivesAndDiagnostics(
             if (/^#define\s*(\(|=|\/\/|\/\*|$)/.test(line.text)) {
                 causes.push("missing name");
             }
-            if (!/\(.+\)/.test(line.text)) {
-                causes.push("missing angle signature");
-            }
             if (/^[^=]+=\s*(\/\/|\/\*|$)/.test(line.text)) {
                 causes.push("missing args after `=`");
             }
@@ -739,6 +742,7 @@ async function refreshDirectivesAndDiagnostics(
 
         const {
             directionPrefix,
+            directionPrefix2,
             directive,
             translation,
             direction: rawDirection,
@@ -750,20 +754,26 @@ async function refreshDirectivesAndDiagnostics(
         const nameEnd = nameStart.translate({ characterDelta: translation.length });
         const nameRange = new vscode.Range(nameStart, nameEnd);
 
-        const directionStart = new vscode.Position(lineIndex, directionPrefix.length);
-        const directionEnd = directionStart.translate({ characterDelta: rawDirection.length });
-        const directionRange = new vscode.Range(directionStart, directionEnd);
-
         const newDiagnostics = [];
 
-        const direction = prepareDirection(rawDirection);
-        if (!direction) {
-            newDiagnostics.push({
-                range: directionRange,
-                message: `Invalid direction "${rawDirection}".`,
-                severity: vscode.DiagnosticSeverity.Error,
-                source: directiveDiagnosticsSource,
-            });
+        let direction: Direction | undefined;
+        if (rawDirection != null) {
+            const directionStart = new vscode.Position(
+                lineIndex,
+                directionPrefix.length + (directionPrefix2?.length ?? 0),
+            );
+            const directionEnd = directionStart.translate({ characterDelta: rawDirection.length });
+            const directionRange = new vscode.Range(directionStart, directionEnd);
+
+            direction = prepareDirection(rawDirection);
+            if (!direction) {
+                newDiagnostics.push({
+                    range: directionRange,
+                    message: `Invalid direction "${rawDirection}".`,
+                    severity: vscode.DiagnosticSeverity.Error,
+                    source: directiveDiagnosticsSource,
+                });
+            }
         }
 
         if (isInDefaultRegistry(prepareTranslation(translation))) {
@@ -789,7 +799,7 @@ async function refreshDirectivesAndDiagnostics(
         }
 
         newMacroRegistryWithImports[translation] = newMacroRegistry[translation] = new MacroPatternInfo(
-            direction!,
+            direction,
             pattern,
             args?.replace(/\-\>/g, "→"),
         );
@@ -1215,6 +1225,10 @@ async function copySelectedMacroAsForumPostCommand(editor: vscode.TextEditor): P
     }
 
     const { translation: name, args, direction, pattern } = defineMatch?.groups! as unknown as DefineRegexGroups;
+    if (direction == null) {
+        vscode.window.showErrorMessage("Define directive must include angle signature for this command.");
+        return;
+    }
 
     let macroInput, macroOutput;
     if (args) {

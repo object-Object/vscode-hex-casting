@@ -26,6 +26,8 @@ export interface DefaultPatternInfo extends PatternInfo {
 export type Direction = "EAST" | "SOUTH_EAST" | "SOUTH_WEST" | "WEST" | "NORTH_WEST" | "NORTH_EAST";
 
 export class MacroPatternInfo implements PatternInfo {
+    public direction: Direction | null;
+    public pattern: string | null;
     public args: string | null;
 
     public modName = "macro";
@@ -34,7 +36,9 @@ export class MacroPatternInfo implements PatternInfo {
     public url = null;
     public description = null;
 
-    constructor(public direction: Direction, public pattern: string, args?: string) {
+    constructor(direction?: Direction, pattern?: string, args?: string) {
+        this.direction = direction ?? null;
+        this.pattern = pattern ?? null;
         this.args = args ?? null;
     }
 }
