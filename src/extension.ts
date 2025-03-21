@@ -19,7 +19,7 @@ import { activateHexDebug } from "./debug";
 import { renderPattern, initPatternRenderer, clearRenderedPatternCache } from "./patterns/rendering";
 
 const rootSection = "hex-casting";
-const output = vscode.window.createOutputChannel("Hex Casting");
+export const output = vscode.window.createOutputChannel("Hex Casting");
 const selector: vscode.DocumentSelector = [
     { scheme: "file", language: "hexcasting" },
     { scheme: "untitled", language: "hexcasting" },
@@ -215,7 +215,12 @@ function getPatternRange(document: vscode.TextDocument, start: vscode.Position):
     return [range, false];
 }
 
-async function makeCompletionItem(
+interface PatternCompletionItem extends vscode.CompletionItem {
+    patternInfo: PatternInfo;
+    translation: string;
+}
+
+function makeCompletionItem(
     document: vscode.TextDocument,
     label: string,
     hasParam: boolean,
@@ -223,7 +228,7 @@ async function makeCompletionItem(
     range: vscode.Range,
     hasTextAfter: boolean,
     patternInfo?: PatternInfo,
-): Promise<vscode.CompletionItem> {
+): PatternCompletionItem {
     patternInfo = patternInfo ?? getFromRegistry(document, label)!;
     const { name, args } = patternInfo;
 
@@ -233,15 +238,16 @@ async function makeCompletionItem(
             description: name,
         },
         detail: args ?? undefined,
-        documentation: await makeDocumentation(label, patternInfo, 300, 300),
         kind: vscode.CompletionItemKind.Function,
         insertText: label + getInsertTextSuffix(hasParam, trimmedNextLine, hasTextAfter),
         range,
         sortText: translationSortPrefix + label,
+        patternInfo,
+        translation: label,
     };
 }
 
-async function makeCompletionItems(
+function makeCompletionItems(
     document: vscode.TextDocument,
     label: string,
     hasParam: boolean,
@@ -249,37 +255,33 @@ async function makeCompletionItems(
     range: vscode.Range,
     hasTextAfter: boolean,
     patternInfo?: PatternInfo,
-): Promise<vscode.CompletionItem[]> {
+): PatternCompletionItem[] {
     patternInfo = patternInfo ?? getFromRegistry(document, label)!;
     const { name } = patternInfo;
 
-    const base = await makeCompletionItem(document, label, hasParam, trimmedNextLine, range, hasTextAfter, patternInfo);
+    const base = makeCompletionItem(document, label, hasParam, trimmedNextLine, range, hasTextAfter, patternInfo);
     return [base, ...(name ? [{ ...base, filterText: name, sortText: nameSortPrefix + label }] : [])];
 }
 
-async function makeCompletionList(
+function makeCompletionList(
     document: vscode.TextDocument,
     trimmedNextLine: string,
     range: vscode.Range,
     hasTextAfter: boolean,
-): Promise<vscode.CompletionItem[]> {
-    const items = await Promise.all(
-        getRegistryEntries(document)
-            .filter(([translation]) => translation != "Consideration")
-            .map(
-                async ([translation, patternInfo]) =>
-                    await makeCompletionItems(
-                        document,
-                        translation,
-                        !patternInfo.name ? false : ["mask", "number"].includes(patternInfo.name),
-                        trimmedNextLine,
-                        range,
-                        hasTextAfter,
-                        patternInfo,
-                    ),
+): PatternCompletionItem[] {
+    return getRegistryEntries(document)
+        .filter(([translation]) => translation != "Consideration")
+        .flatMap(([translation, patternInfo]) =>
+            makeCompletionItems(
+                document,
+                translation,
+                !patternInfo.name ? false : ["mask", "number"].includes(patternInfo.name),
+                trimmedNextLine,
+                range,
+                hasTextAfter,
+                patternInfo,
             ),
-    );
-    return items.flat();
+        );
 }
 
 const defineRe =
@@ -397,13 +399,30 @@ function getRestOfLine(document: vscode.TextDocument, start: vscode.Position, of
     );
 }
 
-class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
-    public async provideCompletionItems(
+abstract class BasePatternCompletionItemProvider implements vscode.CompletionItemProvider<PatternCompletionItem> {
+    public abstract provideCompletionItems(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        token: vscode.CancellationToken,
+        context: vscode.CompletionContext,
+    ): vscode.ProviderResult<PatternCompletionItem[] | vscode.CompletionList<PatternCompletionItem>>;
+
+    public async resolveCompletionItem(
+        item: PatternCompletionItem,
+        _token: vscode.CancellationToken,
+    ): Promise<PatternCompletionItem> {
+        item.documentation = await makeDocumentation(item.translation, item.patternInfo, 300, 300);
+        return item;
+    }
+}
+
+class PatternCompletionItemProvider extends BasePatternCompletionItemProvider {
+    public provideCompletionItems(
         document: vscode.TextDocument,
         position: vscode.Position,
         _token: vscode.CancellationToken,
         _context: vscode.CompletionContext,
-    ): Promise<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem> | undefined> {
+    ): PatternCompletionItem[] | undefined {
         const lineStart = position.with({ character: 0 });
         const rangeStart = document.getWordRangeAtPosition(position)?.start ?? position;
         const line = document.getText(new vscode.Range(lineStart, rangeStart));
@@ -412,33 +431,35 @@ class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
         const trimmedNextLine = getTrimmedNextLine(document, position);
         const [range, hasTextAfter] = getPatternRange(document, rangeStart);
         return [
-            ...(await makeCompletionList(document, trimmedNextLine, range, hasTextAfter)),
-            ...(await makeCompletionItems(
+            ...makeCompletionList(document, trimmedNextLine, range, hasTextAfter),
+            ...makeCompletionItems(
                 document,
                 "Consideration",
                 !line.includes("Consideration:"),
                 trimmedNextLine,
                 range,
                 hasTextAfter,
-            )),
+            ),
         ];
     }
 }
 
-class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
+class SpecialCompletionItemProvider extends BasePatternCompletionItemProvider {
     constructor(
         public translation: string,
         public regex: RegExp,
         public extraSuffixes: string[] = [],
         public extraSuffixMaxRangeLength: number = 1,
-    ) {}
+    ) {
+        super();
+    }
 
-    public async provideCompletionItems(
+    public provideCompletionItems(
         document: vscode.TextDocument,
         position: vscode.Position,
         _token: vscode.CancellationToken,
         _context: vscode.CompletionContext,
-    ): Promise<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem> | undefined> {
+    ): PatternCompletionItem[] | undefined {
         const wordRange = document.getWordRangeAtPosition(position, this.regex);
         if (wordRange === undefined) return;
 
@@ -455,8 +476,8 @@ class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
         // god this is awful code
         const extraItems =
             range.end.character - range.start.character <= this.extraSuffixMaxRangeLength
-                ? this.extraSuffixes.map(async (suffix) => ({
-                      ...(await makeCompletionItem(
+                ? this.extraSuffixes.map((suffix) => ({
+                      ...makeCompletionItem(
                           document,
                           label + suffix,
                           false,
@@ -464,7 +485,7 @@ class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
                           range,
                           hasTextAfter,
                           patternInfo,
-                      )),
+                      ),
                       kind: undefined,
                       preselect: false,
                       filterText: text + suffix,
@@ -474,32 +495,24 @@ class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
 
         return [
             {
-                ...(await makeCompletionItem(
-                    document,
-                    label,
-                    false,
-                    trimmedNextLine,
-                    range,
-                    hasTextAfter,
-                    patternInfo,
-                )),
+                ...makeCompletionItem(document, label, false, trimmedNextLine, range, hasTextAfter, patternInfo),
                 kind: undefined,
                 preselect: true,
                 filterText: text,
                 sortText: specialSortPrefix + text,
             },
-            ...(await Promise.all(extraItems)),
+            ...extraItems,
         ];
     }
 }
 
-class ConsiderationCompletionItemProvider implements vscode.CompletionItemProvider {
-    public async provideCompletionItems(
+class ConsiderationCompletionItemProvider extends BasePatternCompletionItemProvider {
+    public provideCompletionItems(
         document: vscode.TextDocument,
         position: vscode.Position,
         _token: vscode.CancellationToken,
         _context: vscode.CompletionContext,
-    ): Promise<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem> | undefined> {
+    ): PatternCompletionItem[] | undefined {
         const wordRange = document.getWordRangeAtPosition(position, /(?<=^\s*)(Consideration: \\$|\\\\?)/);
         if (wordRange === undefined) return;
 
@@ -515,7 +528,7 @@ class ConsiderationCompletionItemProvider implements vscode.CompletionItemProvid
 
         return [
             {
-                ...(await makeCompletionItem(
+                ...makeCompletionItem(
                     document,
                     label,
                     isSingle,
@@ -523,7 +536,7 @@ class ConsiderationCompletionItemProvider implements vscode.CompletionItemProvid
                     range,
                     hasTextAfter,
                     defaultRegistry["Consideration"],
-                )),
+                ),
                 kind: vscode.CompletionItemKind.Snippet,
                 preselect: true,
                 filterText: text,

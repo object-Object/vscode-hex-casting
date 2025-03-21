@@ -10,6 +10,7 @@ import init_renderer, {
 } from "hex_renderer_javascript";
 // @ts-ignore
 import hex_renderer_wasm from "hex_renderer_javascript/hex_renderer_javascript_bg.wasm";
+import { output } from "../extension";
 
 export interface RenderedImage {
     url: string;
@@ -41,6 +42,8 @@ export async function renderPattern(
     if (patternImages.has(key)) {
         return patternImages.get(key)!!;
     }
+
+    output.appendLine(`Rendering pattern: ${key}`);
 
     // TODO: customizable palettes/settings
 
