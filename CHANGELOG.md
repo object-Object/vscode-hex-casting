@@ -2,6 +2,27 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.1.36] - 2025-03-21
+
+### Additions
+
+- Added support for Hexical 1.3.2, Hexcellular 1.0.2, and Hexcassettes 1.1.1.
+  - Note: Hexical's special handler patterns (Nephthys and Sekhmet) are not yet supported.
+
+### Changes
+
+- Pattern images are now generated on the fly via [hex_renderer_javascript](https://www.npmjs.com/package/hex_renderer_javascript) instead of bundling static images with the extension.
+- Macros and special handlers (eg. Bookkeeper's Gambit, Numerical Reflection) are now rendered on hover when possible.
+- Removed the angle signature from the hover info for great spells.
+
+### Mod Updates
+
+- Hexbound: 0.1.4
+- HexDebug: 0.2.2
+- Hex Keys: 0.1.3
+- HexKinetics: 0.7.3
+- Oneironaut: 0.3.4
+
 ## [0.1.35] - 2024-07-08
 
 ### Changes
