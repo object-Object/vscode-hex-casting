@@ -13,7 +13,7 @@ To get release notifications, go to the [GitHub repo](https://github.com/object-
 ![Feature demo gif](/images/demo.gif)
 
 * Full syntax highlighting
-* Pattern autocomplete for Hex Casting, Hexal, MoreIotas, Hexbound, HexTweaks, and HexKinetics
+* Pattern autocomplete for Hex Casting 0.10.3 and many addons
 * Pattern hover text with name, arguments, mod name, angle signature, and a picture of the stroke order
 * C-style line and block comments
 * Snippets to speed up your workflow

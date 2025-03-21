@@ -9,6 +9,7 @@ export interface PatternInfo {
     modName: string;
     direction: string | null;
     pattern: string | null;
+    isPerWorld: boolean;
     args: string | null;
     url: string | null;
     description: string | null;
@@ -25,6 +26,7 @@ export class MacroPatternInfo implements PatternInfo {
     public pattern: string | null;
     public args: string | null;
 
+    public isPerWorld = false;
     public modName = "macro";
     public modid = "macro";
     public url = null;

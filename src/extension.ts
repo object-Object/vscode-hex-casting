@@ -106,7 +106,7 @@ function isDarkMode(): boolean {
 // maxImageSize overrides maxImageHeight
 async function makeDocumentation(
     translation: string,
-    { modName, direction, pattern, url, description }: PatternInfo,
+    { modName, direction, pattern, isPerWorld, url, description }: PatternInfo,
     maxImageWidth?: number,
     maxImageHeight?: number,
 ): Promise<vscode.MarkdownString> {
@@ -122,8 +122,7 @@ async function makeDocumentation(
         // image
 
         const { url, width, height } = await renderPattern(direction, pattern ?? "", {
-            // FIXME: need to add isPerWorld to the registry
-            isPerWorld: false,
+            isPerWorld,
             darkMode: isDarkMode(),
         });
 

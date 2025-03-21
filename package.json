@@ -151,6 +151,12 @@
                             },
                             "HexDebug": {
                                 "type": "boolean"
+                            },
+                            "Hexical": {
+                                "type": "boolean"
+                            },
+                            "Hexcellular": {
+                                "type": "boolean"
                             }
                         },
                         "required": [],
@@ -166,7 +172,9 @@
                             "Hex Gloop": true,
                             "Oneironaut": true,
                             "Hex Keys": true,
-                            "HexDebug": true
+                            "HexDebug": true,
+                            "Hexical": true,
+                            "Hexcellular": true
                         }
                     }
                 }
