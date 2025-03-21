@@ -303,6 +303,6 @@
     },
     "dependencies": {
         "hex_renderer_javascript": "^0.1.4",
-        "sharp": "^0.33.5"
+        "jimp": "^1.6.0"
     }
 }

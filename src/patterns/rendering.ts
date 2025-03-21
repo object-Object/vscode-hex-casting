@@ -1,4 +1,5 @@
-import sharp from "sharp";
+import { Jimp } from "jimp";
+import { Buffer } from "buffer";
 import init_renderer, {
     draw_bound_pattern,
     GridOptions,
@@ -151,16 +152,16 @@ export async function renderPattern(
     );
 
     // trim transparent margins
-    const {
-        data,
-        info: { width, height },
-    } = await sharp(rawData).trim({ lineArt: true }).toBuffer({ resolveWithObject: true });
+    const buffer = Buffer.from(rawData);
+    const image = await Jimp.fromBuffer(buffer);
+    image.autocrop();
+    const data = await image.getBuffer("image/png");
 
-    const image: RenderedImage = {
+    const result: RenderedImage = {
         url: `data:image/png;base64,${data.toString("base64")}`,
-        width,
-        height,
+        width: image.width,
+        height: image.height,
     };
-    patternImages.set(key, image);
-    return image;
+    patternImages.set(key, result);
+    return result;
 }
