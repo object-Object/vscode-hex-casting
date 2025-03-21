@@ -10,3 +10,6 @@ vsc-extension-quickstart.md
 **/*.ts
 *.hexpattern
 .github/**
+out/
+esbuild.js
+node_modules/

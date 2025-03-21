@@ -1,11 +1,10 @@
 import * as vscode from "vscode";
-import { Blob } from "buffer";
-import init_renderer, { draw_bound_pattern, GridOptions, EndPoint, Color } from "hex_renderer_javascript";
+import { normalize, parse } from "path";
+
 import untypedRegistry from "./data/registry.json";
 import untypedShorthandLookup from "./data/shorthand.json";
 import showInputBox from "./showInputBox";
 import numbers2000 from "./data/numbers_2000.json";
-import { normalize, parse } from "path";
 import { BBCodeError, generatePatternBBCode } from "./patterns/bbcode";
 import { prepareDirection, shortenDirection } from "./patterns/shorthand";
 import {
@@ -17,6 +16,7 @@ import {
     ShorthandLookup,
 } from "./patterns/types";
 import { activateHexDebug } from "./debug";
+import { renderPattern, initPatternRenderer, clearRenderedPatternCache } from "./patterns/rendering";
 
 const rootSection = "hex-casting";
 const output = vscode.window.createOutputChannel("Hex Casting");
@@ -30,16 +30,7 @@ let defaultRegistry: Registry<DefaultPatternInfo> = untypedRegistry;
 const macroRegistries: Map<string, Registry<MacroPatternInfo>> = new Map();
 const macroRegistriesWithImports: Map<string, Registry<MacroPatternInfo>> = new Map();
 
-const patternImageUrls: Map<string, string> = new Map();
-
 const currentlyLoading: Map<string, number> = new Map();
-
-const themePaths = {
-    [vscode.ColorThemeKind.Dark]: "dark/",
-    [vscode.ColorThemeKind.HighContrast]: "dark/",
-    [vscode.ColorThemeKind.HighContrastLight]: "light/",
-    [vscode.ColorThemeKind.Light]: "light/",
-};
 
 // put special before normal name before internal name
 const specialSortPrefix = "";
@@ -112,107 +103,13 @@ function isDarkMode(): boolean {
     }
 }
 
-function getPatternImageUrl(direction: string, pattern: string, isPerWorld: boolean): string {
-    const key = `${direction} ${pattern}`;
-    if (patternImageUrls.has(key)) {
-        return patternImageUrls.get(key)!!;
-    }
-
-    // TODO: customizable palettes/settings
-
-    const lineWidth = 0.08;
-    const pointRadius = lineWidth;
-    const arrowRadius = lineWidth * 2;
-    const maxOverlaps = 3;
-
-    const maxScale = 0.4;
-    const maxWidth = 1024;
-    const maxHeight = 1024;
-
-    const markerColor: Color = isDarkMode() ? [255, 255, 255, 255] : [0, 0, 0, 255];
-    const lineColors: Color[] = [
-        [255, 107, 255, 255],
-        [168, 30, 227, 255],
-        [100, 144, 237, 255],
-        [177, 137, 199, 255],
-    ];
-    const collisionColor: Color = [221, 0, 0, 255];
-
-    const start_point: EndPoint = {
-        type: "BorderedMatch",
-        match_radius: pointRadius,
-        border: {
-            color: markerColor,
-            radius: pointRadius * 1.5,
-        },
-    };
-
-    const grid_options: GridOptions = {
-        line_thickness: lineWidth,
-        pattern_options: {
-            type: "Uniform",
-            intersections: {
-                type: "EndsAndMiddle",
-                start: start_point,
-                middle: {
-                    type: "Single",
-                    marker: {
-                        color: markerColor,
-                        radius: pointRadius,
-                    },
-                },
-                end: start_point,
-            },
-            lines: {
-                type: "SegmentColors",
-                colors: lineColors,
-                triangles: {
-                    type: "BorderStartMatch",
-                    match_radius: arrowRadius,
-                    border: {
-                        color: markerColor,
-                        radius: arrowRadius * 1.5,
-                    },
-                },
-                collisions: {
-                    type: "OverloadedParallel",
-                    max_line: maxOverlaps,
-                    overload: {
-                        type: "Dashes",
-                        color: collisionColor,
-                    },
-                },
-            },
-        },
-        center_dot: {
-            type: "None",
-        },
-    };
-
-    const image = draw_bound_pattern(
-        grid_options,
-        {
-            direction,
-            angle_sigs: pattern,
-            great_spell: isPerWorld,
-        },
-        maxScale,
-        maxWidth,
-        maxHeight,
-    );
-
-    const url = URL.createObjectURL(new Blob([image], { type: "image/png" }));
-    patternImageUrls.set(key, url);
-    return url;
-}
-
 // maxImageSize overrides maxImageHeight
-function makeDocumentation(
+async function makeDocumentation(
     translation: string,
     { modName, direction, pattern, url, description }: PatternInfo,
     maxImageWidth?: number,
     maxImageHeight?: number,
-): vscode.MarkdownString {
+): Promise<vscode.MarkdownString> {
     let result = new vscode.MarkdownString(
         url != null ? `**[${translation}](${url})**` : `**${translation}**`,
     ).appendMarkdown(` (${modName})`);
@@ -223,21 +120,29 @@ function makeDocumentation(
 
     if (direction != null) {
         // image
-        // FIXME: need to add isPerWorld to the registry
-        const imageUrl = getPatternImageUrl(direction, pattern ?? "", false);
 
-        const styles = ["height: auto;", "width: auto;"];
-        if (maxImageWidth != null) {
-            styles.push(`max-width: ${maxImageWidth}px;`);
-        }
-        if (maxImageHeight != null) {
-            styles.push(`max-height: ${maxImageHeight}px;`);
+        const { url, width, height } = await renderPattern(direction, pattern ?? "", {
+            // FIXME: need to add isPerWorld to the registry
+            isPerWorld: false,
+            darkMode: isDarkMode(),
+        });
+
+        maxImageWidth = Math.min(width, maxImageWidth ?? width);
+        maxImageHeight = Math.min(height, maxImageHeight ?? height);
+
+        let sizedWidth = maxImageWidth;
+        let sizedHeight = (maxImageWidth * height) / width;
+
+        if (sizedHeight > maxImageHeight) {
+            sizedWidth = (maxImageHeight * width) / height;
+            sizedHeight = maxImageHeight;
         }
 
         result = result.appendMarkdown(`\n\n<img
-            src="${imageUrl}"
+            src="${url}"
             alt="Stroke order for ${translation}"
-            style="${styles.join("")}"
+            width="${sizedWidth}"
+            height="${sizedHeight}"
         />`);
 
         // signature
@@ -309,7 +214,7 @@ function getPatternRange(document: vscode.TextDocument, start: vscode.Position):
     return [range, false];
 }
 
-function makeCompletionItem(
+async function makeCompletionItem(
     document: vscode.TextDocument,
     label: string,
     hasParam: boolean,
@@ -317,7 +222,7 @@ function makeCompletionItem(
     range: vscode.Range,
     hasTextAfter: boolean,
     patternInfo?: PatternInfo,
-): vscode.CompletionItem {
+): Promise<vscode.CompletionItem> {
     patternInfo = patternInfo ?? getFromRegistry(document, label)!;
     const { name, args } = patternInfo;
 
@@ -327,7 +232,7 @@ function makeCompletionItem(
             description: name,
         },
         detail: args ?? undefined,
-        documentation: makeDocumentation(label, patternInfo, 300, 300),
+        documentation: await makeDocumentation(label, patternInfo, 300, 300),
         kind: vscode.CompletionItemKind.Function,
         insertText: label + getInsertTextSuffix(hasParam, trimmedNextLine, hasTextAfter),
         range,
@@ -335,7 +240,7 @@ function makeCompletionItem(
     };
 }
 
-function makeCompletionItems(
+async function makeCompletionItems(
     document: vscode.TextDocument,
     label: string,
     hasParam: boolean,
@@ -343,33 +248,37 @@ function makeCompletionItems(
     range: vscode.Range,
     hasTextAfter: boolean,
     patternInfo?: PatternInfo,
-): vscode.CompletionItem[] {
+): Promise<vscode.CompletionItem[]> {
     patternInfo = patternInfo ?? getFromRegistry(document, label)!;
     const { name } = patternInfo;
 
-    const base = makeCompletionItem(document, label, hasParam, trimmedNextLine, range, hasTextAfter, patternInfo);
+    const base = await makeCompletionItem(document, label, hasParam, trimmedNextLine, range, hasTextAfter, patternInfo);
     return [base, ...(name ? [{ ...base, filterText: name, sortText: nameSortPrefix + label }] : [])];
 }
 
-function makeCompletionList(
+async function makeCompletionList(
     document: vscode.TextDocument,
     trimmedNextLine: string,
     range: vscode.Range,
     hasTextAfter: boolean,
-): vscode.CompletionItem[] {
-    return getRegistryEntries(document)
-        .filter(([translation]) => translation != "Consideration")
-        .flatMap<vscode.CompletionItem>(([translation, patternInfo]) =>
-            makeCompletionItems(
-                document,
-                translation,
-                !patternInfo.name ? false : ["mask", "number"].includes(patternInfo.name),
-                trimmedNextLine,
-                range,
-                hasTextAfter,
-                patternInfo,
+): Promise<vscode.CompletionItem[]> {
+    const items = await Promise.all(
+        getRegistryEntries(document)
+            .filter(([translation]) => translation != "Consideration")
+            .map(
+                async ([translation, patternInfo]) =>
+                    await makeCompletionItems(
+                        document,
+                        translation,
+                        !patternInfo.name ? false : ["mask", "number"].includes(patternInfo.name),
+                        trimmedNextLine,
+                        range,
+                        hasTextAfter,
+                        patternInfo,
+                    ),
             ),
-        );
+    );
+    return items.flat();
 }
 
 const defineRe =
@@ -488,12 +397,12 @@ function getRestOfLine(document: vscode.TextDocument, start: vscode.Position, of
 }
 
 class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
-    public provideCompletionItems(
+    public async provideCompletionItems(
         document: vscode.TextDocument,
         position: vscode.Position,
         _token: vscode.CancellationToken,
         _context: vscode.CompletionContext,
-    ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
+    ): Promise<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem> | undefined> {
         const lineStart = position.with({ character: 0 });
         const rangeStart = document.getWordRangeAtPosition(position)?.start ?? position;
         const line = document.getText(new vscode.Range(lineStart, rangeStart));
@@ -502,15 +411,15 @@ class PatternCompletionItemProvider implements vscode.CompletionItemProvider {
         const trimmedNextLine = getTrimmedNextLine(document, position);
         const [range, hasTextAfter] = getPatternRange(document, rangeStart);
         return [
-            ...makeCompletionList(document, trimmedNextLine, range, hasTextAfter),
-            ...makeCompletionItems(
+            ...(await makeCompletionList(document, trimmedNextLine, range, hasTextAfter)),
+            ...(await makeCompletionItems(
                 document,
                 "Consideration",
                 !line.includes("Consideration:"),
                 trimmedNextLine,
                 range,
                 hasTextAfter,
-            ),
+            )),
         ];
     }
 }
@@ -523,12 +432,12 @@ class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
         public extraSuffixMaxRangeLength: number = 1,
     ) {}
 
-    public provideCompletionItems(
+    public async provideCompletionItems(
         document: vscode.TextDocument,
         position: vscode.Position,
         _token: vscode.CancellationToken,
         _context: vscode.CompletionContext,
-    ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
+    ): Promise<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem> | undefined> {
         const wordRange = document.getWordRangeAtPosition(position, this.regex);
         if (wordRange === undefined) return;
 
@@ -545,8 +454,8 @@ class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
         // god this is awful code
         const extraItems =
             range.end.character - range.start.character <= this.extraSuffixMaxRangeLength
-                ? this.extraSuffixes.map((suffix) => ({
-                      ...makeCompletionItem(
+                ? this.extraSuffixes.map(async (suffix) => ({
+                      ...(await makeCompletionItem(
                           document,
                           label + suffix,
                           false,
@@ -554,7 +463,7 @@ class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
                           range,
                           hasTextAfter,
                           patternInfo,
-                      ),
+                      )),
                       kind: undefined,
                       preselect: false,
                       filterText: text + suffix,
@@ -564,24 +473,32 @@ class SpecialCompletionItemProvider implements vscode.CompletionItemProvider {
 
         return [
             {
-                ...makeCompletionItem(document, label, false, trimmedNextLine, range, hasTextAfter, patternInfo),
+                ...(await makeCompletionItem(
+                    document,
+                    label,
+                    false,
+                    trimmedNextLine,
+                    range,
+                    hasTextAfter,
+                    patternInfo,
+                )),
                 kind: undefined,
                 preselect: true,
                 filterText: text,
                 sortText: specialSortPrefix + text,
             },
-            ...extraItems,
+            ...(await Promise.all(extraItems)),
         ];
     }
 }
 
 class ConsiderationCompletionItemProvider implements vscode.CompletionItemProvider {
-    public provideCompletionItems(
+    public async provideCompletionItems(
         document: vscode.TextDocument,
         position: vscode.Position,
         _token: vscode.CancellationToken,
         _context: vscode.CompletionContext,
-    ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
+    ): Promise<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem> | undefined> {
         const wordRange = document.getWordRangeAtPosition(position, /(?<=^\s*)(Consideration: \\$|\\\\?)/);
         if (wordRange === undefined) return;
 
@@ -597,7 +514,7 @@ class ConsiderationCompletionItemProvider implements vscode.CompletionItemProvid
 
         return [
             {
-                ...makeCompletionItem(
+                ...(await makeCompletionItem(
                     document,
                     label,
                     isSingle,
@@ -605,7 +522,7 @@ class ConsiderationCompletionItemProvider implements vscode.CompletionItemProvid
                     range,
                     hasTextAfter,
                     defaultRegistry["Consideration"],
-                ),
+                )),
                 kind: vscode.CompletionItemKind.Snippet,
                 preselect: true,
                 filterText: text,
@@ -615,11 +532,11 @@ class ConsiderationCompletionItemProvider implements vscode.CompletionItemProvid
 }
 
 class PatternHoverProvider implements vscode.HoverProvider {
-    public provideHover(
+    public async provideHover(
         document: vscode.TextDocument,
         position: vscode.Position,
         _token: vscode.CancellationToken,
-    ): vscode.ProviderResult<vscode.Hover> {
+    ): Promise<vscode.Hover | undefined> {
         const range = document.getWordRangeAtPosition(position) ?? document.getWordRangeAtPosition(position, /[{}]/);
         if (range === undefined) return;
 
@@ -632,7 +549,7 @@ class PatternHoverProvider implements vscode.HoverProvider {
         return {
             contents: [
                 ...(args ? [new vscode.MarkdownString(args)] : []),
-                makeDocumentation(translation, patternInfo, undefined, 180),
+                await makeDocumentation(translation, patternInfo, undefined, 180),
             ],
         };
     }
@@ -1393,7 +1310,7 @@ async function copySelectionAsListCommand(editor: vscode.TextEditor): Promise<vo
 }
 
 export async function activate(context: vscode.ExtensionContext) {
-    await init_renderer();
+    await initPatternRenderer();
 
     updateConfiguration();
 
@@ -1439,6 +1356,10 @@ export async function activate(context: vscode.ExtensionContext) {
                     patternCollection.clear();
                     directiveCollection.clear();
                 }
+            }
+            if (e.affectsConfiguration("workbench.colorTheme")) {
+                output.appendLine("Color theme changed, clearing rendered pattern cache");
+                clearRenderedPatternCache();
             }
         }),
 
