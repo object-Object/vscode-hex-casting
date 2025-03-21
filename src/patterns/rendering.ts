@@ -38,7 +38,7 @@ export async function renderPattern(
     pattern: string,
     { isPerWorld, darkMode }: PatternRenderingOptions,
 ): Promise<RenderedImage> {
-    const key = `${direction} ${pattern}`;
+    const key = `${direction} ${pattern} ${isPerWorld ? "perWorld" : ""}`;
     if (patternImages.has(key)) {
         return patternImages.get(key)!!;
     }
