@@ -7,11 +7,6 @@ export interface PatternInfo {
     name?: string;
     modid: string;
     modName: string;
-    image: {
-        filename: string;
-        height: number;
-        width: number;
-    } | null;
     direction: string | null;
     pattern: string | null;
     args: string | null;
@@ -32,7 +27,6 @@ export class MacroPatternInfo implements PatternInfo {
 
     public modName = "macro";
     public modid = "macro";
-    public image = null;
     public url = null;
     public description = null;
 

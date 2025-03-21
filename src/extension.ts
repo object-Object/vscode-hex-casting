@@ -1,4 +1,6 @@
 import * as vscode from "vscode";
+import { Blob } from "buffer";
+import init_renderer, { draw_bound_pattern, GridOptions, EndPoint, Color } from "hex_renderer_javascript";
 import untypedRegistry from "./data/registry.json";
 import untypedShorthandLookup from "./data/shorthand.json";
 import showInputBox from "./showInputBox";
@@ -27,6 +29,8 @@ let defaultRegistry: Registry<DefaultPatternInfo> = untypedRegistry;
 
 const macroRegistries: Map<string, Registry<MacroPatternInfo>> = new Map();
 const macroRegistriesWithImports: Map<string, Registry<MacroPatternInfo>> = new Map();
+
+const patternImageUrls: Map<string, string> = new Map();
 
 const currentlyLoading: Map<string, number> = new Map();
 
@@ -97,10 +101,115 @@ function updateConfiguration() {
     shorthandLookup = makeShorthandLookup();
 }
 
+function isDarkMode(): boolean {
+    switch (vscode.window.activeColorTheme.kind) {
+        case vscode.ColorThemeKind.Light:
+        case vscode.ColorThemeKind.HighContrastLight:
+            return false;
+        case vscode.ColorThemeKind.Dark:
+        case vscode.ColorThemeKind.HighContrast:
+            return true;
+    }
+}
+
+function getPatternImageUrl(direction: string, pattern: string, isPerWorld: boolean): string {
+    const key = `${direction} ${pattern}`;
+    if (patternImageUrls.has(key)) {
+        return patternImageUrls.get(key)!!;
+    }
+
+    // TODO: customizable palettes/settings
+
+    const lineWidth = 0.08;
+    const pointRadius = lineWidth;
+    const arrowRadius = lineWidth * 2;
+    const maxOverlaps = 3;
+
+    const maxScale = 0.4;
+    const maxWidth = 1024;
+    const maxHeight = 1024;
+
+    const markerColor: Color = isDarkMode() ? [255, 255, 255, 255] : [0, 0, 0, 255];
+    const lineColors: Color[] = [
+        [255, 107, 255, 255],
+        [168, 30, 227, 255],
+        [100, 144, 237, 255],
+        [177, 137, 199, 255],
+    ];
+    const collisionColor: Color = [221, 0, 0, 255];
+
+    const start_point: EndPoint = {
+        type: "BorderedMatch",
+        match_radius: pointRadius,
+        border: {
+            color: markerColor,
+            radius: pointRadius * 1.5,
+        },
+    };
+
+    const grid_options: GridOptions = {
+        line_thickness: lineWidth,
+        pattern_options: {
+            type: "Uniform",
+            intersections: {
+                type: "EndsAndMiddle",
+                start: start_point,
+                middle: {
+                    type: "Single",
+                    marker: {
+                        color: markerColor,
+                        radius: pointRadius,
+                    },
+                },
+                end: start_point,
+            },
+            lines: {
+                type: "SegmentColors",
+                colors: lineColors,
+                triangles: {
+                    type: "BorderStartMatch",
+                    match_radius: arrowRadius,
+                    border: {
+                        color: markerColor,
+                        radius: arrowRadius * 1.5,
+                    },
+                },
+                collisions: {
+                    type: "OverloadedParallel",
+                    max_line: maxOverlaps,
+                    overload: {
+                        type: "Dashes",
+                        color: collisionColor,
+                    },
+                },
+            },
+        },
+        center_dot: {
+            type: "None",
+        },
+    };
+
+    const image = draw_bound_pattern(
+        grid_options,
+        {
+            direction,
+            angle_sigs: pattern,
+            great_spell: isPerWorld,
+        },
+        maxScale,
+        maxWidth,
+        maxHeight,
+    );
+
+    const url = URL.createObjectURL(new Blob([image], { type: "image/png" }));
+    patternImageUrls.set(key, url);
+    return url;
+}
+
 // maxImageSize overrides maxImageHeight
 function makeDocumentation(
     translation: string,
-    { modName, image, direction, pattern, url, description }: PatternInfo,
+    { modName, direction, pattern, url, description }: PatternInfo,
     maxImageWidth?: number,
     maxImageHeight?: number,
 ): vscode.MarkdownString {
@@ -108,32 +217,32 @@ function makeDocumentation(
         url != null ? `**[${translation}](${url})**` : `**${translation}**`,
     ).appendMarkdown(` (${modName})`);
 
-    const { kind: themeKind } = vscode.window.activeColorTheme;
-    // this feels sketchy. is there a better way to do this?
-    result.baseUri = vscode.Uri.file(__dirname.replace(/out$/, "") + "images/patterns/" + themePaths[themeKind]);
     result.supportHtml = true;
 
     if (description != null) result = result.appendMarkdown(`\n\n${description}`);
 
-    if (image != null) {
-        const { filename, width, height } = image;
-        maxImageWidth = Math.min(width, maxImageWidth ?? width);
-        maxImageHeight = Math.min(height, maxImageHeight ?? height);
+    if (direction != null) {
+        // image
+        // FIXME: need to add isPerWorld to the registry
+        const imageUrl = getPatternImageUrl(direction, pattern ?? "", false);
 
-        let sizedWidth = maxImageWidth;
-        let sizedHeight = (maxImageWidth * height) / width;
-
-        if (sizedHeight > maxImageHeight) {
-            sizedWidth = (maxImageHeight * width) / height;
-            sizedHeight = maxImageHeight;
+        const styles = ["height: auto;", "width: auto;"];
+        if (maxImageWidth != null) {
+            styles.push(`max-width: ${maxImageWidth}px;`);
+        }
+        if (maxImageHeight != null) {
+            styles.push(`max-height: ${maxImageHeight}px;`);
         }
 
-        const style = `width="${sizedWidth}" height="${sizedHeight}"`;
+        result = result.appendMarkdown(`\n\n<img
+            src="${imageUrl}"
+            alt="Stroke order for ${translation}"
+            style="${styles.join("")}"
+        />`);
 
-        result = result.appendMarkdown(`\n\n<img src="${filename}" alt="Stroke order for ${translation}" ${style}/>`);
+        // signature
+        result = result.appendMarkdown(`\n\n\`${direction}${pattern ? " " + pattern : ""}\``);
     }
-
-    if (direction != null) result = result.appendMarkdown(`\n\n\`${direction}${pattern ? " " + pattern : ""}\``);
 
     return result;
 }
@@ -1284,6 +1393,8 @@ async function copySelectionAsListCommand(editor: vscode.TextEditor): Promise<vo
 }
 
 export async function activate(context: vscode.ExtensionContext) {
+    await init_renderer();
+
     updateConfiguration();
 
     const patternCollection = vscode.languages.createDiagnosticCollection("hex-casting.patterns");

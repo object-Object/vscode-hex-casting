@@ -765,6 +765,11 @@ he@1.2.0:
   resolved "https://registry.yarnpkg.com/he/-/he-1.2.0.tgz#84ae65fa7eafb165fddb61566ae14baf05664f0f"
   integrity sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==
 
+hex_renderer_javascript@^0.1.4:
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/hex_renderer_javascript/-/hex_renderer_javascript-0.1.4.tgz#a77d2e3154fe97fa25b44061cdad4774a7961543"
+  integrity sha512-ivUiSM5xnfPI1ODXe3aSZ8vPUIyFjl/XXYVrK2QEbeV4BcDmjlQvlzgnI1l/Xs1L1Q9N3KlLDSanLgYwYXegsA==
+
 http-proxy-agent@^4.0.1:
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/http-proxy-agent/-/http-proxy-agent-4.0.1.tgz#8a8c8ef7f5932ccf953c296ca8291b95aa74aa3a"
