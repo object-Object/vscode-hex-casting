@@ -40,7 +40,7 @@ export async function renderPattern(
 ): Promise<RenderedImage> {
     const key = `${direction} ${pattern} ${isPerWorld ? "perWorld" : ""}`;
     if (patternImages.has(key)) {
-        return patternImages.get(key)!!;
+        return patternImages.get(key)!;
     }
 
     output.appendLine(`Rendering pattern: ${key}`);

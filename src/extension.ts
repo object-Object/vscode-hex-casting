@@ -103,12 +103,16 @@ function isDarkMode(): boolean {
     }
 }
 
-// maxImageSize overrides maxImageHeight
+interface MakeDocumentationProps {
+    maxWidth?: number;
+    maxHeight?: number;
+    param?: string;
+}
+
 async function makeDocumentation(
     translation: string,
-    { modName, direction, pattern, isPerWorld, url, description }: PatternInfo,
-    maxImageWidth?: number,
-    maxImageHeight?: number,
+    { name, modName, direction, pattern, isPerWorld, url, description }: PatternInfo,
+    { maxWidth, maxHeight, param }: MakeDocumentationProps,
 ): Promise<vscode.MarkdownString> {
     let result = new vscode.MarkdownString(
         url != null ? `**[${translation}](${url})**` : `**${translation}**`,
@@ -118,6 +122,21 @@ async function makeDocumentation(
 
     if (description != null) result = result.appendMarkdown(`\n\n${description}`);
 
+    if (param != null) {
+        switch (name) {
+            case "mask":
+                ({ direction, pattern } = generateBookkeeper(param));
+                break;
+
+            case "number":
+                const n = parseFloat(param);
+                if (NUMBER_LITERALS.has(n)) {
+                    ({ direction, pattern } = NUMBER_LITERALS.get(n)!);
+                }
+                break;
+        }
+    }
+
     if (direction != null) {
         // image
 
@@ -126,15 +145,15 @@ async function makeDocumentation(
             darkMode: isDarkMode(),
         });
 
-        maxImageWidth = Math.min(width, maxImageWidth ?? width);
-        maxImageHeight = Math.min(height, maxImageHeight ?? height);
+        maxWidth = Math.min(width, maxWidth ?? width);
+        maxHeight = Math.min(height, maxHeight ?? height);
 
-        let sizedWidth = maxImageWidth;
-        let sizedHeight = (maxImageWidth * height) / width;
+        let sizedWidth = maxWidth;
+        let sizedHeight = (maxWidth * height) / width;
 
-        if (sizedHeight > maxImageHeight) {
-            sizedWidth = (maxImageHeight * width) / height;
-            sizedHeight = maxImageHeight;
+        if (sizedHeight > maxHeight) {
+            sizedWidth = (maxHeight * width) / height;
+            sizedHeight = maxHeight;
         }
 
         result = result.appendMarkdown(`\n\n<img
@@ -167,13 +186,19 @@ function getInsertTextSuffix(hasParam: boolean, trimmedNextLine: string, hasText
 }
 
 function prepareTranslation(text: string): string {
-    return text
+    return prepareTranslationWithParam(text)[0];
+}
+
+function prepareTranslationWithParam(text: string): [string, string | undefined] {
+    const translation = text
         .replace(/[{\[]/g, "Introspection")
         .replace(/[}\]]/g, "Retrospection")
         .replace(
             /(?<=Bookkeeper's Gambit):\s*[v-]+|(?<=Numerical Reflection):\s*-?(?:\d*\.\d*|\d+)|(?<=Consideration):.*/g,
             "",
         );
+    const param = /: (\S+)/.exec(text)?.[1];
+    return [translation, param];
 }
 
 function isInDefaultRegistry(translation: string): boolean {
@@ -411,7 +436,10 @@ abstract class BasePatternCompletionItemProvider implements vscode.CompletionIte
         item: PatternCompletionItem,
         _token: vscode.CancellationToken,
     ): Promise<PatternCompletionItem> {
-        item.documentation = await makeDocumentation(item.translation, item.patternInfo, 300, 300);
+        item.documentation = await makeDocumentation(item.translation, item.patternInfo, {
+            maxWidth: 300,
+            maxHeight: 300,
+        });
         return item;
     }
 }
@@ -554,7 +582,7 @@ class PatternHoverProvider implements vscode.HoverProvider {
         const range = document.getWordRangeAtPosition(position) ?? document.getWordRangeAtPosition(position, /[{}]/);
         if (range === undefined) return;
 
-        const translation = prepareTranslation(document.getText(range));
+        const [translation, param] = prepareTranslationWithParam(document.getText(range));
         if (!isInRegistry(document, translation)) return;
 
         const patternInfo = getFromRegistry(document, translation)!;
@@ -563,7 +591,7 @@ class PatternHoverProvider implements vscode.HoverProvider {
         return {
             contents: [
                 ...(args ? [new vscode.MarkdownString(args)] : []),
-                await makeDocumentation(translation, patternInfo, undefined, 180),
+                await makeDocumentation(translation, patternInfo, { maxHeight: 180, param }),
             ],
         };
     }
