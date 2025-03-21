@@ -1,5 +1,13 @@
 import sharp from "sharp";
-import init_renderer, { draw_bound_pattern, GridOptions, EndPoint, Color } from "hex_renderer_javascript";
+import init_renderer, {
+    draw_bound_pattern,
+    GridOptions,
+    Point,
+    EndPoint,
+    Color,
+    Intersections,
+    Lines,
+} from "hex_renderer_javascript";
 // @ts-ignore
 import hex_renderer_wasm from "hex_renderer_javascript/hex_renderer_javascript_bg.wasm";
 
@@ -53,52 +61,74 @@ export async function renderPattern(
         [177, 137, 199, 255],
     ];
     const collisionColor: Color = [221, 0, 0, 255];
+    const perWorldColor: Color = [168, 30, 227, 255];
 
-    const start_point: EndPoint = {
-        type: "BorderedMatch",
-        match_radius: pointRadius,
-        border: {
+    const point: Point = {
+        type: "Single",
+        marker: {
             color: markerColor,
-            radius: pointRadius * 1.5,
+            radius: pointRadius,
         },
     };
+
+    let intersections: Intersections;
+    let lines: Lines;
+    if (isPerWorld) {
+        intersections = {
+            type: "UniformPoints",
+            point,
+        };
+
+        lines = {
+            type: "Monocolor",
+            color: perWorldColor,
+            bent: false,
+        };
+    } else {
+        const start_point: EndPoint = {
+            type: "BorderedMatch",
+            match_radius: pointRadius,
+            border: {
+                color: markerColor,
+                radius: pointRadius * 1.5,
+            },
+        };
+
+        intersections = {
+            type: "EndsAndMiddle",
+            start: start_point,
+            middle: point,
+            end: start_point,
+        };
+
+        lines = {
+            type: "SegmentColors",
+            colors: lineColors,
+            triangles: {
+                type: "BorderStartMatch",
+                match_radius: arrowRadius,
+                border: {
+                    color: markerColor,
+                    radius: arrowRadius * 1.5,
+                },
+            },
+            collisions: {
+                type: "OverloadedParallel",
+                max_line: maxOverlaps,
+                overload: {
+                    type: "Dashes",
+                    color: collisionColor,
+                },
+            },
+        };
+    }
 
     const grid_options: GridOptions = {
         line_thickness: lineWidth,
         pattern_options: {
             type: "Uniform",
-            intersections: {
-                type: "EndsAndMiddle",
-                start: start_point,
-                middle: {
-                    type: "Single",
-                    marker: {
-                        color: markerColor,
-                        radius: pointRadius,
-                    },
-                },
-                end: start_point,
-            },
-            lines: {
-                type: "SegmentColors",
-                colors: lineColors,
-                triangles: {
-                    type: "BorderStartMatch",
-                    match_radius: arrowRadius,
-                    border: {
-                        color: markerColor,
-                        radius: arrowRadius * 1.5,
-                    },
-                },
-                collisions: {
-                    type: "OverloadedParallel",
-                    max_line: maxOverlaps,
-                    overload: {
-                        type: "Dashes",
-                        color: collisionColor,
-                    },
-                },
-            },
+            intersections,
+            lines,
         },
         center_dot: {
             type: "None",

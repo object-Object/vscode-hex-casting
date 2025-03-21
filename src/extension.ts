@@ -145,7 +145,9 @@ async function makeDocumentation(
         />`);
 
         // signature
-        result = result.appendMarkdown(`\n\n\`${direction}${pattern ? " " + pattern : ""}\``);
+        if (!isPerWorld) {
+            result = result.appendMarkdown(`\n\n\`${direction}${pattern ? " " + pattern : ""}\``);
+        }
     }
 
     return result;
