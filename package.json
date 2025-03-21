@@ -157,6 +157,9 @@
                             },
                             "Hexcellular": {
                                 "type": "boolean"
+                            },
+                            "Hexcassettes": {
+                                "type": "boolean"
                             }
                         },
                         "required": [],
@@ -174,7 +177,8 @@
                             "Hex Keys": true,
                             "HexDebug": true,
                             "Hexical": true,
-                            "Hexcellular": true
+                            "Hexcellular": true,
+                            "Hexcassettes": true
                         }
                     }
                 }
