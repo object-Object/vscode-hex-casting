@@ -50,6 +50,7 @@ vscode-hex-casting now supports Hex Casting 0.11.2 for Minecraft 1.20.1! This is
 
 - Changed how pattern hovers/suggestions are displayed to accomodate patterns with multiple overloads (eg. Additive Distillation).
 - Patterns now display their full id instead of just the part after the modid in most cases.
+- The config option `hex-casting.inlayHints.internalNames.modID.otherMods` now defaults to true instead of false.
 
 ### Removals
 

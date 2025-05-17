@@ -107,7 +107,7 @@
                     },
                     "hex-casting.inlayHints.internalNames.modID.otherMods": {
                         "type": "boolean",
-                        "default": false,
+                        "default": true,
                         "markdownDescription": "Add the mod ID to internal pattern names from addons:\n```hexpattern\nSummon Cyclic Wisp/* <hexal:wisp/summon/ticking>*/\n```"
                     },
                     "hex-casting.inlayHints.macros.enabled": {
