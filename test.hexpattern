@@ -35,6 +35,19 @@ Imported
  define Foo
 #define Counter's Queue (NORTH_EAST dadaddww)
 
+#define Pattern Stub (e aqweds) [hexcasting:foo] = any -> any
+#define Pattern Stub 2 (e aqweds) [addon:bar] = any -> any
+#define Pattern Stub 3 [addon:baz]
+#define Per World Pattern Stub (e aqweds) [hexcasting:foo,perWorld] = any -> any
+#define Per World Pattern Stub 2 (e aqweds) [ hexcasting:foo , perWorld ] = any -> any
+#define Per World Macro (e aqweds) [perWorld]
+#define Per World Macro 2 (e aqweds) [,perWorld]
+
+Pattern Stub
+Pattern Stub 2
+Per World Pattern Stub
+Per World Macro
+
 Foo's Reflection
 Foo's Purification
 Foo's Reflection12

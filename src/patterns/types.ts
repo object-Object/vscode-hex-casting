@@ -79,36 +79,48 @@ export const MACRO_MOD_ID = "macro";
 
 export class MacroPatternInfo {
     public location: vscode.Location;
-    public id = null;
-    public modid = MACRO_MOD_ID;
-    public idPath = null;
+    public id: string | null = null;
+    public modid: string = MACRO_MOD_ID;
+    public idPath: string | null = null;
     public translation: string;
     public direction: Direction | null;
     public signature: string | null;
-    public isPerWorld = false;
+    public isPerWorld: boolean;
     public operators: [PatternOperator, ...PatternOperator[]];
 
     constructor({
         location,
+        modid,
+        idPath,
         translation,
         direction,
         signature,
+        isPerWorld,
         description,
         inputs,
         outputs,
     }: {
         location: vscode.Location;
+        modid?: string;
+        idPath?: string;
         translation: string;
         direction?: Direction;
         signature?: string;
+        isPerWorld: boolean;
         description?: string;
         inputs?: string;
         outputs?: string;
     }) {
+        if (modid && idPath) {
+            this.id = `${modid}:${idPath}`;
+            this.modid = modid;
+            this.idPath = idPath;
+        }
         this.location = location;
         this.translation = translation;
         this.direction = direction ?? null;
         this.signature = signature ?? null;
+        this.isPerWorld = isPerWorld;
         this.operators = [
             {
                 description: description ?? null,

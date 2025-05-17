@@ -131,7 +131,7 @@ function updateConfiguration() {
         }
     }
     if (unknownModIds.size > 0) {
-        vscode.window.showWarningMessage(
+        output.appendLine(
             `Unknown mod id${
                 unknownModIds.size == 1 ? "" : "s"
             } found in config option \`hex-casting.disabledModIds\`: ${Array.of(...unknownModIds)
@@ -263,7 +263,7 @@ async function makeDocumentation(
 }
 
 function getModName(id: string): string {
-    return id === MACRO_MOD_ID ? "macro" : registry.mods[id].name;
+    return id === MACRO_MOD_ID ? "macro" : registry.mods[id]?.name ?? id;
 }
 
 function maybeLink(text: string, link: string | null): string {
@@ -414,7 +414,7 @@ function makeCompletionList(
 }
 
 const defineRe =
-    /^(?<directionPrefix>(?<directive>#define[ \t]+)(?=[^ \t])(?<translation>[^(\n]+?))(?:(?<directionPrefix2>[ \t]*\([ \t]*)(?<direction>[a-zA-Z_\-]+)(?:[ \t]+(?<signature>[aqwedsAQWEDS]+))?[ \t]*\))?[ \t]*(?:=[ \t]*(?=[^ \t])(?<inputs>.+?)\s*->\s*(?<outputs>.+?)[ \t]*)?(?:\/\/|\/\*|$)/;
+    /^(?<directionPrefix>(?<directive>#define[ \t]+)(?=[^ \t])(?<translation>[^(\n]+?))(?:(?<directionPrefix2>[ \t]*\([ \t]*)(?<direction>[a-zA-Z_\-]+)(?:[ \t]+(?<signature>[aqwedsAQWEDS]+))?[ \t]*\))?[ \t]*(?:\[ *(?:(?<modid>[0-9a-z_\-.]+):(?<idPath>[0-9a-z_\-./]+))? *,? *(?:(?<=\[ *|\, *)(?<perWorld>perWorld))? *\])?[ \t]*(?:=[ \t]*(?=[^ \t])(?<inputs>.+?)\s*->\s*(?<outputs>.+?)[ \t]*)?(?:\/\/|\/\*|$)/;
 
 const includeRe = /^#include[ \t]+"(?<path>.+?)"(?:\/\/|\/\*|$)/;
 
@@ -428,6 +428,9 @@ interface DefineRegexGroups {
     translation: string;
     direction?: string;
     signature?: string;
+    modid?: string;
+    idPath?: string;
+    perWorld?: "perWorld";
     inputs?: string;
     outputs?: string;
 }
@@ -970,6 +973,9 @@ async function refreshDirectivesAndDiagnostics(
             translation,
             direction: rawDirection,
             signature,
+            modid,
+            idPath,
+            perWorld,
             inputs,
             outputs,
         } = defineMatch.groups as unknown as DefineRegexGroups;
@@ -1034,7 +1040,10 @@ async function refreshDirectivesAndDiagnostics(
             translation,
             direction,
             signature,
+            isPerWorld: perWorld != undefined,
             description: descriptionLines.join("\n") || undefined,
+            modid,
+            idPath,
             inputs,
             outputs,
         });
@@ -1145,9 +1154,16 @@ class PatternInlayHintsProvider implements vscode.InlayHintsProvider {
             const translation = prepareTranslation(match.pattern);
 
             let hintText;
-            if (config.inlayHints.macros.enabled && isInMacroRegistry(document, translation)) {
+            if (
+                config.inlayHints.macros.enabled &&
+                isInMacroRegistry(document, translation) &&
+                getFromMacroRegistry(document, translation)?.id == null // don't show macro hint for stubbed patterns
+            ) {
                 hintText = "(macro)";
-            } else if (config.inlayHints.internalNames.enabled && isInDefaultRegistry(translation)) {
+            } else if (
+                config.inlayHints.internalNames.enabled &&
+                (isInDefaultRegistry(translation) || getFromMacroRegistry(document, translation)?.id != null)
+            ) {
                 const { modid, id, idPath } = getFromRegistry(document, translation)!;
 
                 const isFromHex = modid == "hexcasting";

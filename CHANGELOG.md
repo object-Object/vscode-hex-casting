@@ -43,8 +43,14 @@ vscode-hex-casting now supports Hex Casting 0.11.2 for Minecraft 1.20.1! This is
   ///
   /// Description line 2.
   ```
-- Added support for using "Go to Definition" on macro usages and `#include` statements.
-- Added support for displaying [signature help](https://code.visualstudio.com/api/language-extensions/programmatic-language-features#help-with-function-and-method-signatures). Currently only opens when triggered manually using the "Trigger Parameter Hints" hotkey/command.
+- Added new syntax for setting the pattern id of macros and/or marking them as per-world patterns. Macros declared with a pattern id will be displayed as normal patterns instead of macros. This is intended for use in creating "stub files" for addons/patterns that are not currently supported by this extension. For example:
+  ```
+  #define Pattern Stub (e aqweds) [hexcasting:foo] = any -> any
+  #define Per World Pattern Stub (e aqweds) [hexcasting:foo,perWorld] = any -> any
+  #define Per World Macro (e aqweds) [perWorld]
+  ```
+- Added a provider for "Go to Definition" on macro usages and `#include` statements.
+- Added a [signature help provider](https://code.visualstudio.com/api/language-extensions/programmatic-language-features#help-with-function-and-method-signatures). Currently only opens when triggered manually using the "Trigger Parameter Hints" hotkey/command.
 
 ### Changes
 
