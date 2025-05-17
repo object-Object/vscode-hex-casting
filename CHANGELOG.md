@@ -2,6 +2,60 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.2.0] - [UNRELEASED]
+
+vscode-hex-casting now supports Hex Casting 0.11.2 for Minecraft 1.20.1! This is a major Hex Casting update that changes how patterns work on a fundamental level, so the extension version has been incremented to 0.2.0.
+
+### Additions
+
+- Added/updated support for the following mods:
+  - Complex Hex
+  - Dynamic Trees - Hexcasting
+  - Ephemera
+  - HexDebug
+  - HexGender
+  - HexMapping
+  - HexTweaks
+  - HexWeb
+  - Hexal
+  - Hexcassettes
+  - Hexcellular
+  - Hexchanting
+  - Hexical
+  - Hexposition
+  - Hextrogen
+  - Hexxy Dimensions
+  - IoticBlocks
+  - MoreIotas
+  - Oneironaut
+  - Overevaluate
+- Added a new setting `hex-casting.disabledModIds`, which takes an array of mod ids (not mod names) to disable patterns/overloads from. For example:
+  ```json
+  {
+    "hex-casting.disabledModIds": ["hexal", "moreiotas"]
+  }
+  ```
+
+### Changes
+
+- Changed how pattern hovers/suggestions are displayed to accomodate patterns with multiple overloads (eg. Additive Distillation).
+- Patterns now display their full id instead of just the part after the modid in most cases.
+
+### Removals
+
+- Removed support for the following mods, all of which are still only available for 1.19.2:
+  - HexKinetics
+  - Hexbound
+  - Mediaworks
+  - Hex Gloop
+  - Hex Keys
+- Removed the setting `hex-casting.enabledMods`.
+
+### Notes
+
+- This extension now uses the [HexBug v2 registry](https://github.com/object-Object/HexBug/blob/2b67f9f69e54e882374b2caf47ba24987025ee70/bot/src/HexBug/data/registry.py#L53) as a data source, instead of a custom generated registry format.
+- Macros do not yet support the new operator system - you'll still get an error if you try to define multiple macros with the same name but different inputs.
+
 ## [0.1.36] - 2025-03-21
 
 ### Additions
