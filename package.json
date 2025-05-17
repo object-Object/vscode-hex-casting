@@ -149,7 +149,8 @@
                             ]
                         },
                         "uniqueItems": true,
-                        "additionalItems": true
+                        "additionalItems": true,
+                        "default": []
                     }
                 }
             }

@@ -104,7 +104,7 @@ interface Configuration {
             enabled: boolean;
         };
     };
-    disabledModIds: string[];
+    disabledModIds?: string[];
 }
 
 let config: Configuration;
@@ -124,20 +124,22 @@ function updateConfiguration() {
 
     const disabledModIds = new Set<string>();
     const unknownModIds = new Set<string>();
-    for (const modid of config.disabledModIds) {
-        disabledModIds.add(modid);
-        if (registry.mods[modid] == null) {
-            unknownModIds.add(modid);
+    if (config.disabledModIds) {
+        for (const modid of config.disabledModIds) {
+            disabledModIds.add(modid);
+            if (registry.mods[modid] == null) {
+                unknownModIds.add(modid);
+            }
         }
-    }
-    if (unknownModIds.size > 0) {
-        output.appendLine(
-            `Unknown mod id${
-                unknownModIds.size == 1 ? "" : "s"
-            } found in config option \`hex-casting.disabledModIds\`: ${Array.of(...unknownModIds)
-                .sort()
-                .join(", ")}`,
-        );
+        if (unknownModIds.size > 0) {
+            output.appendLine(
+                `Unknown mod id${
+                    unknownModIds.size == 1 ? "" : "s"
+                } found in config option \`hex-casting.disabledModIds\`: ${Array.of(...unknownModIds)
+                    .sort()
+                    .join(", ")}`,
+            );
+        }
     }
 
     // clone the full registry and only include entries where the mod is enabled

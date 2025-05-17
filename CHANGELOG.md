@@ -2,6 +2,12 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.2.1] - 2025-05-17
+
+### Fixes
+
+- Hotfix: Fix extension failing to start when `config.disabledModIds` is not iterable.
+
 ## [0.2.0] - 2025-05-17
 
 vscode-hex-casting now supports Hex Casting 0.11.2 for Minecraft 1.20.1! This is a major Hex Casting update that changes how patterns work on a fundamental level, so the extension version has been incremented to 0.2.0.
