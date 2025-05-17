@@ -18,10 +18,12 @@ import {
     PatternInfo,
     PatternLookup,
     PatternOperator,
+    RegistryPatternInfo,
     ShorthandLookup,
 } from "./patterns/types";
 import { activateHexDebug } from "./debug";
 import { renderPattern, initPatternRenderer, clearRenderedPatternCache } from "./patterns/rendering";
+import { formatArgs } from "./patterns/utils";
 
 const rootSection = "hex-casting";
 export const output = vscode.window.createOutputChannel("Hex Casting");
@@ -41,8 +43,8 @@ const translationSortPrefix = "~";
 const nameSortPrefix = "~~";
 const specialExtraSortPrefix = "~~~";
 
-function makeDefaultRegistry(): PatternLookup<PatternInfo> {
-    const result: PatternLookup<PatternInfo> = {};
+function makeDefaultRegistry(): PatternLookup<RegistryPatternInfo> {
+    const result: PatternLookup<RegistryPatternInfo> = {};
 
     for (const info of Object.values(registry.patterns)) {
         const [modid, idPath] = info.id.split(":");
@@ -177,22 +179,6 @@ async function makeDocumentation(
     { id, modid, translation, direction, signature, isPerWorld, operators }: PatternInfo,
     { maxWidth, maxHeight, param }: MakeDocumentationProps,
 ): Promise<vscode.MarkdownString> {
-    // FIXME: hack
-    // we need to show all of the operators, not just the first one
-    // and show the mod name for each signature, not just the source mod
-    const { description, book_url } = operators[0];
-    const modName = modid === MACRO_MOD_ID ? "macro" : registry.mods[modid].name;
-
-    const result = new vscode.MarkdownString();
-    result.supportHtml = true;
-
-    result
-        .appendMarkdown(`\`${id}\`\n\n`)
-        .appendMarkdown(book_url != null ? `**[${translation}](${book_url})**` : `**${translation}**`)
-        .appendMarkdown(` (${modName})`);
-
-    if (description != null) result.appendMarkdown(`\n\n${description}`);
-
     if (param != null) {
         switch (id) {
             case "hexcasting:mask":
@@ -205,12 +191,23 @@ async function makeDocumentation(
                     ({ direction, signature } = NUMBER_LITERALS.get(n)!);
                 }
                 break;
+
+            // TODO: add overevaluate's special handlers
         }
     }
 
-    if (direction != null) {
-        // image
+    const result = new vscode.MarkdownString();
+    result.supportHtml = true;
 
+    if (operators.length == 1) {
+        const { book_url } = operators[0];
+        result.appendMarkdown(`**${translation}** (${maybeLink(getModName(modid), book_url)})`);
+    } else {
+        result.appendMarkdown(`**${translation}** (${getModName(modid)})`);
+    }
+
+    // image
+    if (direction != null) {
         const { url, width, height } = await renderPattern(direction, signature ?? "", {
             isPerWorld,
             darkMode: isDarkMode(),
@@ -233,14 +230,47 @@ async function makeDocumentation(
             width="${sizedWidth}"
             height="${sizedHeight}"
         />`);
+    }
 
-        // signature
-        if (!isPerWorld) {
-            result.appendMarkdown(`\n\n\`${direction}${signature ? " " + signature : ""}\``);
+    // footer
+    let footerParts = [];
+    if (id != null) footerParts.push(id);
+    if (direction != null && !isPerWorld) footerParts.push(direction + (signature ? " " + signature : ""));
+    if (footerParts.length > 0) {
+        result.appendMarkdown(`\n\n\`${footerParts.join(" · ")}\``);
+    }
+
+    // operators/overloads
+    if (operators.length == 1) {
+        // special case patterns with a single operator to remove unnecessary information and make patterns with no inputs/outputs look better
+        const { description, inputs, outputs } = operators[0];
+
+        if (inputs || outputs || description) result.appendMarkdown("\n\n---");
+
+        if (inputs || outputs) result.appendMarkdown("\n\n" + formatArgs(inputs, outputs, { underline: true }));
+
+        if (description) result.appendMarkdown("\n\n" + description);
+    } else {
+        for (const { description, inputs, outputs, book_url, mod_id } of operators) {
+            const args = formatArgs(inputs, outputs, { underline: true });
+            result.appendMarkdown(`\n\n---\n\n${args} (${maybeLink(getModName(mod_id), book_url)})`);
+
+            if (description) result.appendMarkdown("\n\n" + description);
         }
     }
 
     return result;
+}
+
+function getModName(id: string): string {
+    return id === MACRO_MOD_ID ? "macro" : registry.mods[id].name;
+}
+
+function maybeLink(text: string, link: string | null): string {
+    if (link == null) {
+        return text;
+    }
+    return `[${text}](${link})`;
 }
 
 function getInsertTextSuffix(hasParam: boolean, trimmedNextLine: string, hasTextAfter: boolean): string {

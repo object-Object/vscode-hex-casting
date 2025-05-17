@@ -61,11 +61,12 @@ export interface SpecialHandlerInfo {
 }
 
 // i hate it here
-export interface PatternInfo {
-    id: string | null;
+export interface RegistryPatternInfo {
+    id: string;
     modid: string;
-    idPath: string | null;
+    idPath: string;
     translation: string;
+    // null only for special handlers
     direction: Direction | null;
     signature: string | null;
     isPerWorld: boolean;
@@ -74,7 +75,7 @@ export interface PatternInfo {
 
 export const MACRO_MOD_ID = "macro";
 
-export class MacroPatternInfo implements PatternInfo {
+export class MacroPatternInfo {
     public id = null;
     public modid = MACRO_MOD_ID;
     public idPath = null;
@@ -111,6 +112,8 @@ export class MacroPatternInfo implements PatternInfo {
         ];
     }
 }
+
+export type PatternInfo = RegistryPatternInfo | MacroPatternInfo;
 
 export type PatternLookup<T extends PatternInfo> = { [translation: string]: T };
 

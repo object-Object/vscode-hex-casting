@@ -31,6 +31,9 @@ Imported
 
 Foo's Reflection
 Foo's Purification
+Foo's Reflection12
+Consume Wisp
+Craft Debugger
 Consideration: Foo's Purification
 /*
 Foo's Purification
@@ -46,11 +49,15 @@ Consideration: Mind's Reflection
 Consideration: Zone Distillation: Animal
 Consideration
 Flay Mind
+Evanition
+Iris' Gambit
+Chronicler's Purification
 {
     Mind's Reflection
     Counter's Queue
     Timekeeper's Reflection
     Mind's Reflection <iota goes here>
+    Additive Distillation
 
     Bookkeeper's Gambit: v
     Bookkeeper's Gambit: -
@@ -84,6 +91,7 @@ Vector Reflection +X
 Vector Reflection Zero
 Zero Distillation
 Summon Rain
+Janus' Gambit
 Summon Cyclic Wisp
 B
 BB: B
