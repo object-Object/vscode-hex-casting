@@ -44,6 +44,7 @@ vscode-hex-casting now supports Hex Casting 0.11.2 for Minecraft 1.20.1! This is
   /// Description line 2.
   ```
 - Added support for using "Go to Definition" on macro usages and `#include` statements.
+- Added support for displaying [signature help](https://code.visualstudio.com/api/language-extensions/programmatic-language-features#help-with-function-and-method-signatures). Currently only opens when triggered manually using the "Trigger Parameter Hints" hotkey/command.
 
 ### Changes
 

@@ -696,6 +696,33 @@ class PatternHoverProvider implements vscode.HoverProvider {
     }
 }
 
+class PatternSignatureHelpProvider implements vscode.SignatureHelpProvider {
+    public provideSignatureHelp(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        _token: vscode.CancellationToken,
+        _context: vscode.SignatureHelpContext,
+    ): vscode.ProviderResult<vscode.SignatureHelp> {
+        const range = document.getWordRangeAtPosition(position) ?? document.getWordRangeAtPosition(position, /[{}]/);
+        if (range === undefined) return;
+
+        const translation = prepareTranslation(document.getText(range));
+        if (!isInRegistry(document, translation)) return;
+
+        const patternInfo = getFromRegistry(document, translation)!;
+
+        return {
+            signatures: patternInfo.operators.map(({ description, inputs, outputs }) => ({
+                label: formatArgs(inputs, outputs),
+                documentation: description ? new vscode.MarkdownString(description) : undefined,
+                parameters: [],
+            })),
+            activeSignature: 0,
+            activeParameter: 0,
+        };
+    }
+}
+
 class MacroDefinitionProvider implements vscode.DefinitionProvider {
     public provideDefinition(
         document: vscode.TextDocument,
@@ -1530,6 +1557,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // hover
         vscode.languages.registerHoverProvider(selector, new PatternHoverProvider()),
+
+        // signature help
+        vscode.languages.registerSignatureHelpProvider(selector, new PatternSignatureHelpProvider()),
 
         // go to definition
         vscode.languages.registerDefinitionProvider(selector, new MacroDefinitionProvider()),
