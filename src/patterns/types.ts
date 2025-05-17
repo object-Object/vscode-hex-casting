@@ -1,3 +1,5 @@
+import * as vscode from "vscode";
+
 export type Direction = "EAST" | "SOUTH_EAST" | "SOUTH_WEST" | "WEST" | "NORTH_WEST" | "NORTH_EAST";
 
 export interface HexPattern {
@@ -76,6 +78,7 @@ export interface RegistryPatternInfo {
 export const MACRO_MOD_ID = "macro";
 
 export class MacroPatternInfo {
+    public location: vscode.Location;
     public id = null;
     public modid = MACRO_MOD_ID;
     public idPath = null;
@@ -86,6 +89,7 @@ export class MacroPatternInfo {
     public operators: [PatternOperator, ...PatternOperator[]];
 
     constructor({
+        location,
         translation,
         direction,
         signature,
@@ -93,6 +97,7 @@ export class MacroPatternInfo {
         inputs,
         outputs,
     }: {
+        location: vscode.Location;
         translation: string;
         direction?: Direction;
         signature?: string;
@@ -100,6 +105,7 @@ export class MacroPatternInfo {
         inputs?: string;
         outputs?: string;
     }) {
+        this.location = location;
         this.translation = translation;
         this.direction = direction ?? null;
         this.signature = signature ?? null;

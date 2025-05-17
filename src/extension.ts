@@ -320,7 +320,11 @@ function isInRegistry(document: vscode.TextDocument, translation: string): boole
 }
 
 function getFromRegistry(document: vscode.TextDocument, translation: string): PatternInfo | undefined {
-    return defaultRegistry[translation] ?? macroRegistriesWithImports.get(document.uri.fsPath)?.[translation];
+    return defaultRegistry[translation] ?? getFromMacroRegistry(document, translation);
+}
+
+function getFromMacroRegistry(document: vscode.TextDocument, translation: string): MacroPatternInfo | undefined {
+    return macroRegistriesWithImports.get(document.uri.fsPath)?.[translation];
 }
 
 function getRegistryEntries(document: vscode.TextDocument): [string, PatternInfo][] {
@@ -692,6 +696,28 @@ class PatternHoverProvider implements vscode.HoverProvider {
     }
 }
 
+class MacroDefinitionProvider implements vscode.DefinitionProvider {
+    public provideDefinition(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        _token: vscode.CancellationToken,
+    ): vscode.ProviderResult<vscode.Definition | vscode.DefinitionLink[]> {
+        // macro usage
+        const range = document.getWordRangeAtPosition(position);
+        if (range) {
+            const translation = prepareTranslation(document.getText(range));
+            const info = getFromMacroRegistry(document, translation);
+            if (info) return info.location;
+        }
+
+        // #include
+        const importUri = getIncludeUri(document, document.lineAt(position).text);
+        if (importUri instanceof vscode.Uri && macroRegistries.has(importUri.fsPath)) {
+            return { uri: importUri, range: new vscode.Range(0, 0, 0, 0) };
+        }
+    }
+}
+
 // ew.
 const patternRe =
     /^(?<prefix>[ \t]*)(?<escape>Consideration: *)?(?!\/\/|\/\*| )(?<pattern>(?:[a-zA-Z0-9:'+\-\./ _]+?|[{}\[\]]))(?: *<(?<iota>.+?)>)?(?= *(?:\/\/|\/\*|{|$))/gm;
@@ -770,6 +796,43 @@ async function loadIncludedFile(
     if (!/^#include([^a-zA-Z]|$)/.test(lineText) || /^[^#]*\/\/.*#include/.test(lineText)) return;
 
     // show diagnostics
+    const importUri = getIncludeUri(document, lineText);
+    if (importUri instanceof Error) return importUri;
+
+    // if the uri isn't in macroRegistries, load the document
+    if (!macroRegistries.has(importUri.fsPath)) {
+        output.appendLine(`Loading: ${importUri.fsPath}`);
+
+        // hopefully this never happens
+        let loadCount = currentlyLoading.get(importUri.fsPath) ?? 0;
+        if (loadCount > 256) {
+            const paths = [...currentlyLoading].join(", ");
+            const message = `Infinite loop detected while importing. Please report this error to the extension developer. Paths: ${paths}`;
+
+            vscode.window.showErrorMessage(message);
+            return new Error(message);
+        }
+
+        currentlyLoading.set(importUri.fsPath, loadCount);
+        try {
+            const openedDocument = await vscode.workspace.openTextDocument(importUri);
+            await refreshDirectivesAndDiagnostics(openedDocument, patternCollection, directiveCollection);
+        } catch (error) {
+            return new Error(`Failed to load "${importUri.fsPath}": ${error}`);
+        } finally {
+            currentlyLoading.delete(importUri.fsPath);
+        }
+    }
+
+    // if the uri *still* isn't in macroRegistries, show a diagnostic
+    // otherwise go ahead and return the imported macros
+    return (
+        macroRegistries.get(importUri.fsPath) ??
+        new Error(`File "${importUri.fsPath}" couldn't be loaded or is not a hexpattern file.`)
+    );
+}
+
+function getIncludeUri(document: vscode.TextDocument, lineText: string) {
     const includeMatch = includeRe.exec(lineText);
 
     if (includeMatch == null) {
@@ -818,37 +881,7 @@ async function loadIncludedFile(
         return new Error(`Self-imports are not permitted.`);
     }
 
-    // if the uri isn't in macroRegistries, load the document
-    if (!macroRegistries.has(importUri.fsPath)) {
-        output.appendLine(`Loading: ${importUri.fsPath}`);
-
-        // hopefully this never happens
-        let loadCount = currentlyLoading.get(importUri.fsPath) ?? 0;
-        if (loadCount > 256) {
-            const paths = [...currentlyLoading].join(", ");
-            const message = `Infinite loop detected while importing. Please report this error to the extension developer. Paths: ${paths}`;
-
-            vscode.window.showErrorMessage(message);
-            return new Error(message);
-        }
-
-        currentlyLoading.set(importUri.fsPath, loadCount);
-        try {
-            const openedDocument = await vscode.workspace.openTextDocument(importUri);
-            await refreshDirectivesAndDiagnostics(openedDocument, patternCollection, directiveCollection);
-        } catch (error) {
-            return new Error(`Failed to load "${importUri.fsPath}": ${error}`);
-        } finally {
-            currentlyLoading.delete(importUri.fsPath);
-        }
-    }
-
-    // if the uri *still* isn't in macroRegistries, show a diagnostic
-    // otherwise go ahead and return the imported macros
-    return (
-        macroRegistries.get(importUri.fsPath) ??
-        new Error(`File "${importUri.fsPath}" couldn't be loaded or is not a hexpattern file.`)
-    );
+    return importUri;
 }
 
 const patternDiagnosticsSource = "hex-casting.pattern";
@@ -970,6 +1003,7 @@ async function refreshDirectivesAndDiagnostics(
         }
 
         newMacroRegistryWithImports[translation] = newMacroRegistry[translation] = new MacroPatternInfo({
+            location: { uri: document.uri, range: line.range },
             translation,
             direction,
             signature,
@@ -1496,6 +1530,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // hover
         vscode.languages.registerHoverProvider(selector, new PatternHoverProvider()),
+
+        // go to definition
+        vscode.languages.registerDefinitionProvider(selector, new MacroDefinitionProvider()),
 
         // inlay hints
         vscode.languages.registerInlayHintsProvider(selector, new PatternInlayHintsProvider()),

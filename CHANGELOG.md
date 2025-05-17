@@ -43,6 +43,7 @@ vscode-hex-casting now supports Hex Casting 0.11.2 for Minecraft 1.20.1! This is
   ///
   /// Description line 2.
   ```
+- Added support for using "Go to Definition" on macro usages and `#include` statements.
 
 ### Changes
 
