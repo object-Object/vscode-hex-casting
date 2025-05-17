@@ -962,10 +962,18 @@ async function refreshDirectivesAndDiagnostics(
             return;
         }
 
+        let descriptionLines = [];
+        for (let i = lineIndex + 1; i < document.lineCount; i++) {
+            const line = document.lineAt(i).text.trim();
+            if (!line.startsWith("///")) break;
+            descriptionLines.push(line.slice(3).trimStart());
+        }
+
         newMacroRegistryWithImports[translation] = newMacroRegistry[translation] = new MacroPatternInfo({
             translation,
             direction,
             signature,
+            description: descriptionLines.join("\n") || undefined,
             inputs,
             outputs,
         });

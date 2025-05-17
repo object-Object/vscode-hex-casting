@@ -35,6 +35,14 @@ vscode-hex-casting now supports Hex Casting 0.11.2 for Minecraft 1.20.1! This is
     "hex-casting.disabledModIds": ["hexal", "moreiotas"]
   }
   ```
+- Added support for setting the description of macros. Any lines starting with `///` immediately after the macro definition will be included as Markdown. For example:
+  ```
+  #define My Macro (EAST aqweds) = int -> str
+  /// **Description line 1.**
+  /// More text on description line 1.
+  ///
+  /// Description line 2.
+  ```
 
 ### Changes
 

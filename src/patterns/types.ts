@@ -89,12 +89,14 @@ export class MacroPatternInfo {
         translation,
         direction,
         signature,
+        description,
         inputs,
         outputs,
     }: {
         translation: string;
         direction?: Direction;
         signature?: string;
+        description?: string;
         inputs?: string;
         outputs?: string;
     }) {
@@ -103,7 +105,7 @@ export class MacroPatternInfo {
         this.signature = signature ?? null;
         this.operators = [
             {
-                description: null,
+                description: description ?? null,
                 inputs: inputs ?? null,
                 outputs: outputs ?? null,
                 book_url: null,
