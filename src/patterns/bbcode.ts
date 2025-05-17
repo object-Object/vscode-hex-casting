@@ -1,23 +1,20 @@
 import { shortenDirection } from "./shorthand";
-import { PatternInfo, PatternSignature } from "./types";
+import { PatternInfo, HexPattern } from "./types";
 
 export class BBCodeError extends Error {}
 
 type BBCodePatternInfo = PatternInfo & { num?: number; translation: string };
 
-export function generatePatternBBCode(
-    patterns: BBCodePatternInfo[],
-    numberLiterals: Map<number, PatternSignature>,
-): string {
+export function generatePatternBBCode(patterns: BBCodePatternInfo[], numberLiterals: Map<number, HexPattern>): string {
     let bbCode = `[pcolor=${getBBCodeColor(0)}]`;
     let indent = 0;
     let isEscaped = false;
     let stopEscape = false;
 
-    for (let { name, translation, num, direction, pattern } of patterns) {
+    for (let { id, idPath, translation, num, direction, signature } of patterns) {
         // look up number literals if possible
         if (num != null && numberLiterals.has(num)) {
-            ({ direction, pattern } = numberLiterals.get(num)!);
+            ({ direction, signature } = numberLiterals.get(num)!);
         }
 
         // consider color
@@ -29,23 +26,23 @@ export function generatePatternBBCode(
                 stopEscape = true;
             }
         }
-        if (name === "escape" && !isEscaped) isEscaped = true;
+        if (id === "hexcasting:escape" && !isEscaped) isEscaped = true;
         const color = isEscaped ? ` color=${getBBCodeColor(0)}` : "";
 
         // retro color
-        if (name === "close_paren" && !isEscaped) bbCode += `[/pcolor][pcolor=${getBBCodeColor(--indent)}]`;
+        if (id === "hexcasting:close_paren" && !isEscaped) bbCode += `[/pcolor][pcolor=${getBBCodeColor(--indent)}]`;
 
         // the actual pattern
-        if (pattern != null && direction != null) {
-            bbCode += `[pat=${pattern!} dir=${shortenDirection(direction!)}${color}]`;
-        } else if (name != null) {
-            bbCode += `[pat=${name}${color}]`;
+        if (signature != null && direction != null) {
+            bbCode += `[pat=${signature!} dir=${shortenDirection(direction!)}${color}]`;
+        } else if (idPath != null) {
+            bbCode += `[pat=${idPath}${color}]`;
         } else {
             throw new BBCodeError(`Couldn't generate BBCode for "${translation}".`);
         }
 
         // intro color
-        if (name === "open_paren" && !isEscaped) bbCode += `[/pcolor][pcolor=${getBBCodeColor(++indent)}]`;
+        if (id === "hexcasting:open_paren" && !isEscaped) bbCode += `[/pcolor][pcolor=${getBBCodeColor(++indent)}]`;
     }
 
     bbCode += "[/pcolor]";

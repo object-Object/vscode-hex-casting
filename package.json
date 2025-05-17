@@ -117,69 +117,39 @@
                     },
                     "hex-casting.enabledMods": {
                         "type": "object",
-                        "description": "Controls which mods are enabled. Patterns from disabled mods will not be recognized or suggested. Macros will still work if Hexal is disabled.",
-                        "properties": {
-                            "Hex Casting": {
-                                "type": "boolean"
-                            },
-                            "Hexal": {
-                                "type": "boolean"
-                            },
-                            "MoreIotas": {
-                                "type": "boolean"
-                            },
-                            "HexTweaks": {
-                                "type": "boolean"
-                            },
-                            "HexKinetics": {
-                                "type": "boolean"
-                            },
-                            "Hexbound": {
-                                "type": "boolean"
-                            },
-                            "Mediaworks": {
-                                "type": "boolean"
-                            },
-                            "Hex Gloop": {
-                                "type": "boolean"
-                            },
-                            "Oneironaut": {
-                                "type": "boolean"
-                            },
-                            "Hex Keys": {
-                                "type": "boolean"
-                            },
-                            "HexDebug": {
-                                "type": "boolean"
-                            },
-                            "Hexical": {
-                                "type": "boolean"
-                            },
-                            "Hexcellular": {
-                                "type": "boolean"
-                            },
-                            "Hexcassettes": {
-                                "type": "boolean"
-                            }
+                        "deprecationMessage": "This config option has been replaced by `hex-casting.disabledModIds`."
+                    },
+                    "hex-casting.disabledModIds": {
+                        "type": "array",
+                        "description": "Disable specific mods by id. Patterns from disabled mods will not be recognized or suggested. Macros will still work if Hexal is disabled.",
+                        "items": {
+                            "type": "string",
+                            "examples": [
+                                "hexcasting",
+                                "complexhex",
+                                "dthexcasting",
+                                "ephemera",
+                                "hexdebug",
+                                "hexgender",
+                                "hexmapping",
+                                "hextweaks",
+                                "hexweb",
+                                "hexal",
+                                "hexcassettes",
+                                "hexcellular",
+                                "hexchanting",
+                                "hexical",
+                                "hexposition",
+                                "hextrogen",
+                                "hexdim",
+                                "ioticblocks",
+                                "moreiotas",
+                                "oneironaut",
+                                "overevaluate"
+                            ]
                         },
-                        "required": [],
-                        "additionalProperties": false,
-                        "default": {
-                            "Hex Casting": true,
-                            "Hexal": true,
-                            "MoreIotas": true,
-                            "HexTweaks": true,
-                            "HexKinetics": true,
-                            "Hexbound": true,
-                            "Mediaworks": true,
-                            "Hex Gloop": true,
-                            "Oneironaut": true,
-                            "Hex Keys": true,
-                            "HexDebug": true,
-                            "Hexical": true,
-                            "Hexcellular": true,
-                            "Hexcassettes": true
-                        }
+                        "uniqueItems": true,
+                        "additionalItems": true
                     }
                 }
             }

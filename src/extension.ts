@@ -1,18 +1,23 @@
+// abandon all hope, ye who enter here
+
 import * as vscode from "vscode";
 import { normalize, parse } from "path";
 
-import untypedRegistry from "./data/registry.json";
+import { registry } from "./data/registry";
 import untypedShorthandLookup from "./data/shorthand.json";
 import showInputBox from "./showInputBox";
 import numbers2000 from "./data/numbers_2000.json";
 import { BBCodeError, generatePatternBBCode } from "./patterns/bbcode";
 import { prepareDirection, shortenDirection } from "./patterns/shorthand";
 import {
-    DefaultPatternInfo,
     Direction,
+    HexBugRegistry,
+    HexPattern,
+    MACRO_MOD_ID,
     MacroPatternInfo,
     PatternInfo,
-    Registry,
+    PatternLookup,
+    PatternOperator,
     ShorthandLookup,
 } from "./patterns/types";
 import { activateHexDebug } from "./debug";
@@ -25,10 +30,8 @@ const selector: vscode.DocumentSelector = [
     { scheme: "untitled", language: "hexcasting" },
 ];
 
-let defaultRegistry: Registry<DefaultPatternInfo> = untypedRegistry;
-
-const macroRegistries: Map<string, Registry<MacroPatternInfo>> = new Map();
-const macroRegistriesWithImports: Map<string, Registry<MacroPatternInfo>> = new Map();
+const macroRegistries: Map<string, PatternLookup<MacroPatternInfo>> = new Map();
+const macroRegistriesWithImports: Map<string, PatternLookup<MacroPatternInfo>> = new Map();
 
 const currentlyLoading: Map<string, number> = new Map();
 
@@ -38,11 +41,46 @@ const translationSortPrefix = "~";
 const nameSortPrefix = "~~";
 const specialExtraSortPrefix = "~~~";
 
+function makeDefaultRegistry(): PatternLookup<PatternInfo> {
+    const result: PatternLookup<PatternInfo> = {};
+
+    for (const info of Object.values(registry.patterns)) {
+        const [modid, idPath] = info.id.split(":");
+        result[info.name] = {
+            ...info,
+            modid,
+            idPath,
+            translation: info.name,
+            isPerWorld: info.is_per_world,
+        };
+    }
+
+    for (const { base_name, id, operator } of Object.values(registry.special_handlers)) {
+        const [modid, idPath] = id.split(":");
+        result[base_name] = {
+            id,
+            modid,
+            idPath,
+            translation: base_name,
+            direction: null,
+            signature: null,
+            isPerWorld: false,
+            operators: [operator],
+        };
+    }
+
+    return result;
+}
+
+const fullDefaultRegistry = makeDefaultRegistry();
+let defaultRegistry = fullDefaultRegistry;
+
 function makeShorthandLookup(): ShorthandLookup {
     let lookup: ShorthandLookup = untypedShorthandLookup;
-    for (const [translation, pattern] of Object.entries(defaultRegistry)) {
-        if (!Object.prototype.hasOwnProperty.call(lookup, pattern.name)) {
-            lookup[pattern.name] = translation;
+    for (const [translation, { id, idPath }] of Object.entries(defaultRegistry)) {
+        if (idPath != null && !Object.prototype.hasOwnProperty.call(lookup, idPath)) {
+            lookup[idPath] = translation;
+            if (id != null) lookup[id] = translation;
         }
     }
     return lookup;
@@ -64,7 +102,7 @@ interface Configuration {
             enabled: boolean;
         };
     };
-    enabledMods: { [modName: string]: boolean };
+    disabledModIds: string[];
 }
 
 let config: Configuration;
@@ -82,13 +120,39 @@ function updateConfiguration() {
     // handle deprecated option
     diagnosticsEnabled = workspaceConfiguration.enableDiagnostics ?? workspaceConfiguration.diagnostics.enabled;
 
-    // clone the untyped registry and only include entries where the mod is enabled
-    defaultRegistry = filterObject(JSON.parse(JSON.stringify(untypedRegistry)), ([_, { modName }]) => {
-        if (!config.enabledMods.hasOwnProperty(modName)) {
-            throw new Error(`Mod missing from config option hex-casting.enabledMods: "${modName}"`);
+    const disabledModIds = new Set<string>();
+    const unknownModIds = new Set<string>();
+    for (const modid of config.disabledModIds) {
+        disabledModIds.add(modid);
+        if (registry.mods[modid] == null) {
+            unknownModIds.add(modid);
         }
-        return config.enabledMods[modName];
-    });
+    }
+    if (unknownModIds.size > 0) {
+        vscode.window.showWarningMessage(
+            `Unknown mod id${
+                unknownModIds.size == 1 ? "" : "s"
+            } found in config option \`hex-casting.disabledModIds\`: ${Array.of(...unknownModIds)
+                .sort()
+                .join(", ")}`,
+        );
+    }
+
+    // clone the full registry and only include entries where the mod is enabled
+    defaultRegistry = filterObject(
+        JSON.parse(JSON.stringify(fullDefaultRegistry)),
+        ([_, { modid }]) => !disabledModIds.has(modid),
+    );
+
+    // remove operators from disabled mods, then remove entries with no operators left
+    for (const info of Object.values(defaultRegistry)) {
+        info.operators = info.operators.filter(({ mod_id }) => !disabledModIds.has(mod_id)) as [
+            PatternOperator,
+            ...PatternOperator[],
+        ];
+    }
+    defaultRegistry = filterObject(defaultRegistry, ([_, { operators }]) => operators.length > 0);
+
     shorthandLookup = makeShorthandLookup();
 }
 
@@ -110,28 +174,35 @@ interface MakeDocumentationProps {
 }
 
 async function makeDocumentation(
-    translation: string,
-    { name, modName, direction, pattern, isPerWorld, url, description }: PatternInfo,
+    { id, modid, translation, direction, signature, isPerWorld, operators }: PatternInfo,
     { maxWidth, maxHeight, param }: MakeDocumentationProps,
 ): Promise<vscode.MarkdownString> {
-    let result = new vscode.MarkdownString(
-        url != null ? `**[${translation}](${url})**` : `**${translation}**`,
-    ).appendMarkdown(` (${modName})`);
+    // FIXME: hack
+    // we need to show all of the operators, not just the first one
+    // and show the mod name for each signature, not just the source mod
+    const { description, book_url } = operators[0];
+    const modName = modid === MACRO_MOD_ID ? "macro" : registry.mods[modid].name;
 
+    const result = new vscode.MarkdownString();
     result.supportHtml = true;
 
-    if (description != null) result = result.appendMarkdown(`\n\n${description}`);
+    result
+        .appendMarkdown(`\`${id}\`\n\n`)
+        .appendMarkdown(book_url != null ? `**[${translation}](${book_url})**` : `**${translation}**`)
+        .appendMarkdown(` (${modName})`);
+
+    if (description != null) result.appendMarkdown(`\n\n${description}`);
 
     if (param != null) {
-        switch (name) {
-            case "mask":
-                ({ direction, pattern } = generateBookkeeper(param));
+        switch (id) {
+            case "hexcasting:mask":
+                ({ direction, signature } = generateBookkeeper(param));
                 break;
 
-            case "number":
+            case "hexcasting:number":
                 const n = parseFloat(param);
                 if (NUMBER_LITERALS.has(n)) {
-                    ({ direction, pattern } = NUMBER_LITERALS.get(n)!);
+                    ({ direction, signature } = NUMBER_LITERALS.get(n)!);
                 }
                 break;
         }
@@ -140,7 +211,7 @@ async function makeDocumentation(
     if (direction != null) {
         // image
 
-        const { url, width, height } = await renderPattern(direction, pattern ?? "", {
+        const { url, width, height } = await renderPattern(direction, signature ?? "", {
             isPerWorld,
             darkMode: isDarkMode(),
         });
@@ -156,7 +227,7 @@ async function makeDocumentation(
             sizedHeight = maxHeight;
         }
 
-        result = result.appendMarkdown(`\n\n<img
+        result.appendMarkdown(`\n\n<img
             src="${url}"
             alt="Stroke order for ${translation}"
             width="${sizedWidth}"
@@ -165,7 +236,7 @@ async function makeDocumentation(
 
         // signature
         if (!isPerWorld) {
-            result = result.appendMarkdown(`\n\n\`${direction}${pattern ? " " + pattern : ""}\``);
+            result.appendMarkdown(`\n\n\`${direction}${signature ? " " + signature : ""}\``);
         }
     }
 
@@ -208,7 +279,7 @@ function isInDefaultRegistry(translation: string): boolean {
 function isInMacroRegistry(
     document: vscode.TextDocument,
     translation: string,
-    newRegistry?: Registry<MacroPatternInfo>,
+    newRegistry?: PatternLookup<MacroPatternInfo>,
 ): boolean {
     const documentMacros = newRegistry ?? macroRegistriesWithImports.get(document.uri.fsPath);
     return documentMacros ? Object.prototype.hasOwnProperty.call(documentMacros, translation) : false;
@@ -255,14 +326,13 @@ function makeCompletionItem(
     patternInfo?: PatternInfo,
 ): PatternCompletionItem {
     patternInfo = patternInfo ?? getFromRegistry(document, label)!;
-    const { name, args } = patternInfo;
+    const { id } = patternInfo;
 
     return {
         label: {
             label: label,
-            description: name,
+            description: id ?? undefined,
         },
-        detail: args ?? undefined,
         kind: vscode.CompletionItemKind.Function,
         insertText: label + getInsertTextSuffix(hasParam, trimmedNextLine, hasTextAfter),
         range,
@@ -282,10 +352,10 @@ function makeCompletionItems(
     patternInfo?: PatternInfo,
 ): PatternCompletionItem[] {
     patternInfo = patternInfo ?? getFromRegistry(document, label)!;
-    const { name } = patternInfo;
+    const { id } = patternInfo;
 
     const base = makeCompletionItem(document, label, hasParam, trimmedNextLine, range, hasTextAfter, patternInfo);
-    return [base, ...(name ? [{ ...base, filterText: name, sortText: nameSortPrefix + label }] : [])];
+    return [base, ...(id ? [{ ...base, filterText: id, sortText: nameSortPrefix + label }] : [])];
 }
 
 function makeCompletionList(
@@ -300,7 +370,7 @@ function makeCompletionList(
             makeCompletionItems(
                 document,
                 translation,
-                !patternInfo.name ? false : ["mask", "number"].includes(patternInfo.name),
+                !patternInfo.id ? false : ["hexcasting:mask", "hexcasting:number"].includes(patternInfo.id),
                 trimmedNextLine,
                 range,
                 hasTextAfter,
@@ -310,7 +380,7 @@ function makeCompletionList(
 }
 
 const defineRe =
-    /^(?<directionPrefix>(?<directive>#define[ \t]+)(?=[^ \t])(?<translation>[^(\n]+?))(?:(?<directionPrefix2>[ \t]*\([ \t]*)(?<direction>[a-zA-Z_\-]+)(?:[ \t]+(?<pattern>[aqwedsAQWEDS]+))?[ \t]*\))?[ \t]*(?:=[ \t]*(?=[^ \t])(?<args>.+?)[ \t]*)?(?:\/\/|\/\*|$)/;
+    /^(?<directionPrefix>(?<directive>#define[ \t]+)(?=[^ \t])(?<translation>[^(\n]+?))(?:(?<directionPrefix2>[ \t]*\([ \t]*)(?<direction>[a-zA-Z_\-]+)(?:[ \t]+(?<signature>[aqwedsAQWEDS]+))?[ \t]*\))?[ \t]*(?:=[ \t]*(?=[^ \t])(?<inputs>.+?)\s*->\s*(?<outputs>.+?)[ \t]*)?(?:\/\/|\/\*|$)/;
 
 const includeRe = /^#include[ \t]+"(?<path>.+?)"(?:\/\/|\/\*|$)/;
 
@@ -322,11 +392,10 @@ interface DefineRegexGroups {
     directive: string;
     // name of pattern
     translation: string;
-    // signature
     direction?: string;
-    pattern?: string;
-    // inputs -> outputs
-    args?: string;
+    signature?: string;
+    inputs?: string;
+    outputs?: string;
 }
 
 function shouldSkipCompletions(line: string): boolean {
@@ -436,7 +505,7 @@ abstract class BasePatternCompletionItemProvider implements vscode.CompletionIte
         item: PatternCompletionItem,
         _token: vscode.CancellationToken,
     ): Promise<PatternCompletionItem> {
-        item.documentation = await makeDocumentation(item.translation, item.patternInfo, {
+        item.documentation = await makeDocumentation(item.patternInfo, {
             maxWidth: 300,
             maxHeight: 300,
         });
@@ -586,13 +655,9 @@ class PatternHoverProvider implements vscode.HoverProvider {
         if (!isInRegistry(document, translation)) return;
 
         const patternInfo = getFromRegistry(document, translation)!;
-        const { args } = patternInfo;
 
         return {
-            contents: [
-                ...(args ? [new vscode.MarkdownString(args)] : []),
-                await makeDocumentation(translation, patternInfo, { maxHeight: 180, param }),
-            ],
+            contents: [await makeDocumentation(patternInfo, { maxHeight: 180, param })],
         };
     }
 }
@@ -671,7 +736,7 @@ async function loadIncludedFile(
     lineText: string,
     patternCollection: vscode.DiagnosticCollection,
     directiveCollection: vscode.DiagnosticCollection,
-): Promise<Registry<MacroPatternInfo> | Error | undefined> {
+): Promise<PatternLookup<MacroPatternInfo> | Error | undefined> {
     if (!/^#include([^a-zA-Z]|$)/.test(lineText) || /^[^#]*\/\/.*#include/.test(lineText)) return;
 
     // show diagnostics
@@ -767,8 +832,8 @@ async function refreshDirectivesAndDiagnostics(
     const patternDiagnostics: vscode.Diagnostic[] = [];
     const directiveDiagnostics: vscode.Diagnostic[] = [];
 
-    const newMacroRegistry: Registry<MacroPatternInfo> = {};
-    let newMacroRegistryWithImports: Registry<MacroPatternInfo> = {};
+    const newMacroRegistry: PatternLookup<MacroPatternInfo> = {};
+    let newMacroRegistryWithImports: PatternLookup<MacroPatternInfo> = {};
 
     // local macros
     await forEachNonCommentLine(document, (line, lineIndex) => {
@@ -814,8 +879,9 @@ async function refreshDirectivesAndDiagnostics(
             directive,
             translation,
             direction: rawDirection,
-            pattern,
-            args,
+            signature,
+            inputs,
+            outputs,
         } = defineMatch.groups as unknown as DefineRegexGroups;
 
         const nameStart = new vscode.Position(lineIndex, directive.length);
@@ -866,11 +932,13 @@ async function refreshDirectivesAndDiagnostics(
             return;
         }
 
-        newMacroRegistryWithImports[translation] = newMacroRegistry[translation] = new MacroPatternInfo(
+        newMacroRegistryWithImports[translation] = newMacroRegistry[translation] = new MacroPatternInfo({
+            translation,
             direction,
-            pattern,
-            args?.replace(/\-\>/g, "→"),
-        );
+            signature,
+            inputs,
+            outputs,
+        });
     });
     macroRegistries.set(document.uri.fsPath, newMacroRegistry);
 
@@ -981,16 +1049,16 @@ class PatternInlayHintsProvider implements vscode.InlayHintsProvider {
             if (config.inlayHints.macros.enabled && isInMacroRegistry(document, translation)) {
                 hintText = "(macro)";
             } else if (config.inlayHints.internalNames.enabled && isInDefaultRegistry(translation)) {
-                const patternInfo = getFromRegistry(document, translation)!;
+                const { modid, id, idPath } = getFromRegistry(document, translation)!;
 
-                const isFromHex = patternInfo.modid == "hexcasting";
+                const isFromHex = modid == "hexcasting";
                 if (
                     (config.inlayHints.internalNames.modID.hexCasting && isFromHex) ||
                     (config.inlayHints.internalNames.modID.otherMods && !isFromHex)
                 ) {
-                    hintText = `${patternInfo.modid}:${patternInfo.name}`;
+                    hintText = id;
                 } else {
-                    hintText = patternInfo.name;
+                    hintText = idPath;
                 }
             }
             if (hintText == null) return;
@@ -1102,14 +1170,14 @@ class ExpandAllShorthandProvider implements vscode.CodeActionProvider {
     }
 }
 
-function generateBookkeeper(mask: string): { direction: Direction; pattern: string } {
-    let direction: Direction, pattern: string;
+function generateBookkeeper(mask: string): HexPattern {
+    let direction: Direction, signature: string;
     if (mask[0] == "v") {
         direction = "SOUTH_EAST";
-        pattern = "a";
+        signature = "a";
     } else {
         direction = "EAST";
-        pattern = "";
+        signature = "";
     }
 
     for (let i = 0; i < mask.length - 1; i++) {
@@ -1118,31 +1186,31 @@ function generateBookkeeper(mask: string): { direction: Direction; pattern: stri
 
         switch (previous + current) {
             case "--":
-                pattern += "w";
+                signature += "w";
                 break;
             case "-v":
-                pattern += "ea";
+                signature += "ea";
                 break;
             case "v-":
-                pattern += "e";
+                signature += "e";
                 break;
             case "vv":
-                pattern += "da";
+                signature += "da";
                 break;
         }
     }
 
-    return { direction, pattern };
+    return { direction, signature };
 }
 
 function validateAngleSignature(value: string): string | undefined {
     if (!value) return "Field is required.";
 }
 
-const NUMBER_LITERALS = new Map<number, { direction: Direction; pattern: string }>(
-    Object.entries(numbers2000).map(([num, [direction, pattern]]) => [
+const NUMBER_LITERALS = new Map<number, HexPattern>(
+    Object.entries(numbers2000).map(([num, [direction, signature]]) => [
         parseInt(num),
-        { direction: prepareDirection(direction)!, pattern },
+        { direction: prepareDirection(direction)!, signature },
     ]),
 );
 
@@ -1177,8 +1245,8 @@ async function getSelectionPatterns({ selection, document }: vscode.TextEditor, 
             });
         }
 
-        switch (patternInfo.name) {
-            case "mask":
+        switch (patternInfo.id) {
+            case "hexcasting:mask":
                 patterns.push({
                     ...patternInfo,
                     translation,
@@ -1187,7 +1255,7 @@ async function getSelectionPatterns({ selection, document }: vscode.TextEditor, 
                 });
                 break;
 
-            case "number":
+            case "hexcasting:number":
                 const num = parseFloat(param!);
                 patterns.push({
                     ...patternInfo,
@@ -1202,7 +1270,6 @@ async function getSelectionPatterns({ selection, document }: vscode.TextEditor, 
                 patterns.push({
                     ...patternInfo,
                     translation,
-                    name: patternInfo.modName !== "macro" ? patternInfo.name : undefined,
                 });
         }
     }
@@ -1231,9 +1298,9 @@ async function getSelectionPatterns({ selection, document }: vscode.TextEditor, 
                 return;
             }
 
-            const [rawDirection, pattern] = result.split(" ");
+            const [rawDirection, signature] = result.split(" ");
             const direction = prepareDirection(rawDirection)!;
-            NUMBER_LITERALS.set(num, { direction, pattern });
+            NUMBER_LITERALS.set(num, { direction, signature });
         }
     }
 
@@ -1292,16 +1359,20 @@ async function copySelectedMacroAsForumPostCommand(editor: vscode.TextEditor): P
         return;
     }
 
-    const { translation: name, args, direction, pattern } = defineMatch?.groups! as unknown as DefineRegexGroups;
+    const {
+        translation: name,
+        inputs,
+        outputs,
+        direction,
+        signature,
+    } = defineMatch?.groups! as unknown as DefineRegexGroups;
     if (direction == null) {
         vscode.window.showErrorMessage("Define directive must include angle signature for this command.");
         return;
     }
 
-    let macroInput, macroOutput;
-    if (args) {
-        [macroInput, macroOutput] = args.split("->", 2).map((s) => (s ? `[u]${s.trim()}[/u]` : ""));
-    }
+    let macroInput = inputs ? `[u]${inputs.trim()}[/u]` : "";
+    let macroOutput = outputs ? `[u]${outputs.trim()}[/u]` : "";
 
     const comment = rawComment?.replace(/^[ \t]*\/\/+[ \t]*/gm, "");
 
@@ -1320,7 +1391,7 @@ async function copySelectedMacroAsForumPostCommand(editor: vscode.TextEditor): P
     let forumPost = `[size=150]${name}[/size]\n`;
     if (macroInput || macroOutput) forumPost += `[b]${macroInput} → ${macroOutput}[/b]\n`;
     if (comment) forumPost += `${comment}\n`;
-    forumPost += `[pat=${pattern} dir=${shortenDirection(direction)}]
+    forumPost += `[pat=${signature} dir=${shortenDirection(direction)}]
 [spoiler=Patterns]${bbCode}[/spoiler]
 [code]${selectedText}[/code]`;
 
@@ -1334,14 +1405,16 @@ async function copySelectionAsListCommand(editor: vscode.TextEditor): Promise<vo
 
     let list = [];
 
-    for (const { name, translation, num, param, ...rest } of patterns) {
-        let { direction, pattern } = num != undefined ? NUMBER_LITERALS.get(num) ?? rest : rest;
+    for (const { id, translation, num, param, ...rest } of patterns) {
+        let direction: string | null;
+        let signature: string | null;
+        ({ direction, signature } = num != undefined ? NUMBER_LITERALS.get(num) ?? rest : rest);
 
-        if (name != null) {
-            list.push(param ? `${name} ${param}` : name);
+        if (id != null) {
+            list.push(param ? `${id} ${param}` : id);
         } else if (direction != null) {
             direction = shortenDirection(direction);
-            list.push(pattern ? `${direction} ${pattern}` : direction);
+            list.push(signature ? `${direction} ${signature}` : direction);
         } else {
             list.push(translation);
         }

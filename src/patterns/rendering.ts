@@ -36,10 +36,10 @@ export function clearRenderedPatternCache() {
 
 export async function renderPattern(
     direction: string,
-    pattern: string,
+    signature: string,
     { isPerWorld, darkMode }: PatternRenderingOptions,
 ): Promise<RenderedImage> {
-    const key = `${direction} ${pattern} ${isPerWorld ? "perWorld" : ""}`;
+    const key = `${direction} ${signature} ${isPerWorld ? "perWorld" : ""}`;
     if (patternImages.has(key)) {
         return patternImages.get(key)!;
     }
@@ -143,7 +143,7 @@ export async function renderPattern(
         grid_options,
         {
             direction,
-            angle_sigs: pattern,
+            angle_sigs: signature,
             great_spell: isPerWorld,
         },
         maxScale,

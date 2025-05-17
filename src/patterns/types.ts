@@ -1,44 +1,117 @@
-export interface PatternSignature {
-    direction: Direction;
-    pattern: string;
-}
-
-export interface PatternInfo {
-    name?: string;
-    modid: string;
-    modName: string;
-    direction: string | null;
-    pattern: string | null;
-    isPerWorld: boolean;
-    args: string | null;
-    url: string | null;
-    description: string | null;
-}
-
-export interface DefaultPatternInfo extends PatternInfo {
-    name: string;
-}
-
 export type Direction = "EAST" | "SOUTH_EAST" | "SOUTH_WEST" | "WEST" | "NORTH_WEST" | "NORTH_EAST";
 
+export interface HexPattern {
+    direction: Direction;
+    signature: string;
+}
+
+export interface HexBugRegistry {
+    mods: { [id: string]: ModInfo };
+    patterns: { [id: string]: HexBugPatternInfo };
+    special_handlers: { [id: string]: SpecialHandlerInfo };
+}
+
+export type Modloader = "Fabric" | "Forge" | "NeoForge" | "Quilt";
+
+export interface ModInfo {
+    // StaticModInfo
+    id: string;
+    name: string;
+    description: string;
+    icon_url: string | null;
+    curseforge_slug: string | null;
+    modrinth_slug: string | null;
+    modloaders: Modloader[];
+
+    // DynamicModInfo
+    version: string;
+    book_url: string;
+    github_author: string;
+    github_repo: string;
+    github_commit: string;
+    pattern_count: number;
+    special_handler_count: number;
+    first_party_operator_count: number;
+    third_party_operator_count: number;
+}
+
+export interface HexBugPatternInfo {
+    id: string;
+    name: string;
+    direction: Direction;
+    signature: string;
+    is_per_world: boolean;
+    // there must be at least one operator
+    operators: [PatternOperator, ...PatternOperator[]];
+}
+
+export interface PatternOperator {
+    description: string | null;
+    inputs: string | null;
+    outputs: string | null;
+    book_url: string | null;
+    mod_id: string;
+}
+
+export interface SpecialHandlerInfo {
+    id: string;
+    raw_name: string;
+    base_name: string;
+    operator: PatternOperator;
+}
+
+// i hate it here
+export interface PatternInfo {
+    id: string | null;
+    modid: string;
+    idPath: string | null;
+    translation: string;
+    direction: Direction | null;
+    signature: string | null;
+    isPerWorld: boolean;
+    operators: [PatternOperator, ...PatternOperator[]];
+}
+
+export const MACRO_MOD_ID = "macro";
+
 export class MacroPatternInfo implements PatternInfo {
+    public id = null;
+    public modid = MACRO_MOD_ID;
+    public idPath = null;
+    public translation: string;
     public direction: Direction | null;
-    public pattern: string | null;
-    public args: string | null;
-
+    public signature: string | null;
     public isPerWorld = false;
-    public modName = "macro";
-    public modid = "macro";
-    public url = null;
-    public description = null;
+    public operators: [PatternOperator, ...PatternOperator[]];
 
-    constructor(direction?: Direction, pattern?: string, args?: string) {
+    constructor({
+        translation,
+        direction,
+        signature,
+        inputs,
+        outputs,
+    }: {
+        translation: string;
+        direction?: Direction;
+        signature?: string;
+        inputs?: string;
+        outputs?: string;
+    }) {
+        this.translation = translation;
         this.direction = direction ?? null;
-        this.pattern = pattern ?? null;
-        this.args = args ?? null;
+        this.signature = signature ?? null;
+        this.operators = [
+            {
+                description: null,
+                inputs: inputs ?? null,
+                outputs: outputs ?? null,
+                book_url: null,
+                mod_id: MACRO_MOD_ID,
+            },
+        ];
     }
 }
 
-export type Registry<T extends PatternInfo> = { [translation: string]: T };
+export type PatternLookup<T extends PatternInfo> = { [translation: string]: T };
 
 export type ShorthandLookup = { [shorthand: string]: string };
