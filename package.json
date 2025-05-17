@@ -1,5 +1,5 @@
 {
-    "version": "0.2.0",
+    "version": "0.2.1",
     "name": "hex-casting",
     "displayName": "Hex Casting",
     "description": "VSCode language features for the Hex Casting mod for Minecraft.",
