@@ -2,6 +2,12 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.2.2] - 2025-05-19
+
+### Fixes
+
+- Fixed an issue in the `#define` regex which caused macros with no outputs to include the args in the macro name.
+
 ## [0.2.1] - 2025-05-17
 
 ### Fixes

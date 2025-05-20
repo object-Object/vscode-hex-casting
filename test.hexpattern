@@ -31,6 +31,8 @@ Imported
 /// description line 1
 /// description line 2
 #define Foo's Reflection13 = int -> int
+#define Foo's Reflection14 = -> int
+#define Foo's Reflection15 = int ->
  #define Foo =
  define Foo
 #define Counter's Queue (NORTH_EAST dadaddww)
@@ -51,6 +53,9 @@ Per World Macro
 Foo's Reflection
 Foo's Purification
 Foo's Reflection12
+Foo's Reflection13
+Foo's Reflection14
+Foo's Reflection15
 Consume Wisp
 Craft Debugger
 Consideration: Foo's Purification

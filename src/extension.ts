@@ -416,7 +416,7 @@ function makeCompletionList(
 }
 
 const defineRe =
-    /^(?<directionPrefix>(?<directive>#define[ \t]+)(?=[^ \t])(?<translation>[^(\n]+?))(?:(?<directionPrefix2>[ \t]*\([ \t]*)(?<direction>[a-zA-Z_\-]+)(?:[ \t]+(?<signature>[aqwedsAQWEDS]+))?[ \t]*\))?[ \t]*(?:\[ *(?:(?<modid>[0-9a-z_\-.]+):(?<idPath>[0-9a-z_\-./]+))? *,? *(?:(?<=\[ *|\, *)(?<perWorld>perWorld))? *\])?[ \t]*(?:=[ \t]*(?=[^ \t])(?<inputs>.+?)\s*->\s*(?<outputs>.+?)[ \t]*)?(?:\/\/|\/\*|$)/;
+    /^(?<directionPrefix>(?<directive>#define[ \t]+)(?=[^ \t])(?<translation>[^(\n]+?))(?:(?<directionPrefix2>[ \t]*\([ \t]*)(?<direction>[a-zA-Z_\-]+)(?:[ \t]+(?<signature>[aqwedsAQWEDS]+))?[ \t]*\))?[ \t]*(?:\[ *(?:(?<modid>[0-9a-z_\-.]+):(?<idPath>[0-9a-z_\-./]+))? *,? *(?:(?<=\[ *|\, *)(?<perWorld>perWorld))? *\])?[ \t]*(?:=[ \t]*(?=[^ \t])(?<inputs>.+?)? *-> *(?<outputs>.+?)?[ \t]*)?(?:\/\/|\/\*|$)/;
 
 const includeRe = /^#include[ \t]+"(?<path>.+?)"(?:\/\/|\/\*|$)/;
 
