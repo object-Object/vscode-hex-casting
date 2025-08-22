@@ -4,18 +4,33 @@ on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+    inputs:
+      tag:
+        type: string
+        required: true
+        description: Tag
+      wait:
+        type: boolean
+        default: false
+        description: Wait for VS Marketplace validation
+
+env:
+  TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for VS Marketplace validation
+      - if: github.event_name == 'push' || inputs.wait
+        name: Wait for VS Marketplace validation
         run: sleep 5m
         shell: bash
+
       - name: Create GitHub release
-        uses: Roang-zero1/github-create-release-action@v3
+        uses: elgohr/Github-Release-Action@v5
         with:
-          version_regex: ^v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+
-          release_text: "[Download](https://marketplace.visualstudio.com/items?itemName=object-Object.hex-casting) | [Changelog](https://github.com/object-Object/vscode-hex-casting/blob/main/CHANGELOG.md)"
+          title: ${{ env.TAG }}
+          tag: ${{ env.TAG }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
