@@ -3,7 +3,7 @@
 import * as vscode from "vscode";
 import { normalize, parse } from "path";
 
-import { registry } from "./data/registry";
+import { bundledRegistry } from "./data/registry";
 import untypedShorthandLookup from "./data/shorthand.json";
 import showInputBox from "./showInputBox";
 import numbers2000 from "./data/numbers_2000.json";
@@ -24,6 +24,7 @@ import {
 import { activateHexDebug } from "./debug";
 import { renderPattern, initPatternRenderer, clearRenderedPatternCache } from "./patterns/rendering";
 import { formatArgs } from "./patterns/utils";
+import { TextDecoder } from "util";
 
 const rootSection = "hex-casting";
 export const output = vscode.window.createOutputChannel("Hex Casting");
@@ -43,7 +44,7 @@ const translationSortPrefix = "~";
 const nameSortPrefix = "~~";
 const specialExtraSortPrefix = "~~~";
 
-function makeDefaultRegistry(): PatternLookup<RegistryPatternInfo> {
+function makeDefaultRegistry(registry: HexBugRegistry): PatternLookup<RegistryPatternInfo> {
     const result: PatternLookup<RegistryPatternInfo> = {};
 
     for (const info of Object.values(registry.patterns)) {
@@ -74,8 +75,18 @@ function makeDefaultRegistry(): PatternLookup<RegistryPatternInfo> {
     return result;
 }
 
-const fullDefaultRegistry = makeDefaultRegistry();
-let defaultRegistry = fullDefaultRegistry;
+let currentRegistryPath: string | null = null;
+let currentRegistry: HexBugRegistry;
+let fullDefaultRegistry: PatternLookup<RegistryPatternInfo>;
+let defaultRegistry: PatternLookup<RegistryPatternInfo>;
+
+function setRegistry(registry: HexBugRegistry) {
+    currentRegistry = registry;
+    fullDefaultRegistry = makeDefaultRegistry(registry);
+    defaultRegistry = fullDefaultRegistry;
+}
+
+setRegistry(bundledRegistry);
 
 function makeShorthandLookup(): ShorthandLookup {
     let lookup: ShorthandLookup = untypedShorthandLookup;
@@ -105,6 +116,7 @@ interface Configuration {
         };
     };
     disabledModIds?: string[];
+    registryPath?: string;
 }
 
 let config: Configuration;
@@ -114,7 +126,37 @@ function filterObject<V>(obj: { [key: string]: V }, callback: (entry: [string, V
     return Object.fromEntries(Object.entries(obj).filter(callback));
 }
 
-function updateConfiguration() {
+async function loadRegistry(path: string) {
+    output.appendLine(`Loading custom pattern registry: ${path}`);
+
+    let data;
+    try {
+        data = await vscode.workspace.fs.readFile(vscode.Uri.file(path));
+    } catch (e: unknown) {
+        vscode.window.showErrorMessage(`Registry file not found: ${path}`);
+        output.appendLine(`Registry file not found: ${e}`);
+        return null;
+    }
+
+    try {
+        data = new TextDecoder(undefined, { fatal: true }).decode(data);
+    } catch (e: unknown) {
+        vscode.window.showErrorMessage("Failed to decode registry file.");
+        output.appendLine(`Failed to decode registry file: ${e}`);
+        return null;
+    }
+
+    try {
+        // TODO: validate?
+        return JSON.parse(data) as HexBugRegistry;
+    } catch (e: unknown) {
+        vscode.window.showErrorMessage("Failed to parse registry file.");
+        output.appendLine(`Failed to parse registry file: ${e}`);
+        return null;
+    }
+}
+
+async function updateConfiguration() {
     // load configuration
     let workspaceConfiguration = vscode.workspace.getConfiguration(rootSection);
     config = workspaceConfiguration as unknown as Configuration;
@@ -122,12 +164,25 @@ function updateConfiguration() {
     // handle deprecated option
     diagnosticsEnabled = workspaceConfiguration.enableDiagnostics ?? workspaceConfiguration.diagnostics.enabled;
 
+    if (config.registryPath !== currentRegistryPath) {
+        if (config.registryPath) {
+            const newRegistry = await loadRegistry(config.registryPath);
+            if (newRegistry != null) {
+                currentRegistryPath = config.registryPath;
+                setRegistry(newRegistry);
+            }
+        } else {
+            currentRegistryPath = null;
+            setRegistry(bundledRegistry);
+        }
+    }
+
     const disabledModIds = new Set<string>();
     const unknownModIds = new Set<string>();
     if (config.disabledModIds) {
         for (const modid of config.disabledModIds) {
             disabledModIds.add(modid);
-            if (registry.mods[modid] == null) {
+            if (currentRegistry.mods[modid] == null) {
                 unknownModIds.add(modid);
             }
         }
@@ -265,7 +320,7 @@ async function makeDocumentation(
 }
 
 function getModName(id: string): string {
-    return id === MACRO_MOD_ID ? "macro" : registry.mods[id]?.name ?? id;
+    return id === MACRO_MOD_ID ? "macro" : currentRegistry.mods[id]?.name ?? id;
 }
 
 function maybeLink(text: string, link: string | null): string {
@@ -1544,7 +1599,7 @@ async function copySelectionAsListCommand(editor: vscode.TextEditor): Promise<vo
 export async function activate(context: vscode.ExtensionContext) {
     await initPatternRenderer();
 
-    updateConfiguration();
+    await updateConfiguration();
 
     const patternCollection = vscode.languages.createDiagnosticCollection("hex-casting.patterns");
     const directiveCollection = vscode.languages.createDiagnosticCollection("hex-casting.directives");
@@ -1586,9 +1641,9 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.languages.registerInlayHintsProvider(selector, new PatternInlayHintsProvider()),
 
         // configuration
-        vscode.workspace.onDidChangeConfiguration((e) => {
+        vscode.workspace.onDidChangeConfiguration(async (e) => {
             if (e.affectsConfiguration("hex-casting")) {
-                updateConfiguration();
+                await updateConfiguration();
 
                 if (!diagnosticsEnabled) {
                     patternCollection.clear();

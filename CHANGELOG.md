@@ -2,6 +2,13 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.2.3] - 2025-08-22
+
+### Additions
+
+- Added support for Caduceus.
+- Added a config option `hex-casting.registryPath` to allow providing a path to a JSON file in the [HexBug v2 registry format](https://github.com/object-Object/HexBug/blob/78d59d77187ba9df7b4c2bd6406fcb26abe01b44/bot/src/HexBug/data/registry.py), overriding all built-in pattern data.
+
 ## [0.2.2] - 2025-05-19
 
 ### Fixes

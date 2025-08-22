@@ -151,6 +151,11 @@
                         "uniqueItems": true,
                         "additionalItems": true,
                         "default": []
+                    },
+                    "hex-casting.registryPath": {
+                        "type": "string",
+                        "description": "A path to a JSON file in the HexBug v2 registry format. Overrides all built-in pattern data if set.",
+                        "default": null
                     }
                 }
             }

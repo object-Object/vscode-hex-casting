@@ -45,6 +45,18 @@ Imported
 #define Per World Macro (e aqweds) [perWorld]
 #define Per World Macro 2 (e aqweds) [,perWorld]
 
+#define Valid 1a (SOUTH_EAST w) =->
+#define Valid 1b (SOUTH_EAST w) = ->
+#define Valid 1c (SOUTH_EAST w) =  -> 
+#define Valid 2a (SOUTH_EAST w) = int ->
+#define Valid 2b (SOUTH_EAST w) = int -> 
+#define Valid 3a (SOUTH_EAST w) = -> int
+#define Valid 3b (SOUTH_EAST w) =  -> int
+#define Valid 4a (SOUTH_EAST w) =int->int
+#define Valid 4b (SOUTH_EAST w) = int->int
+#define Valid 4c (SOUTH_EAST w) = int -> int
+#define Valid 4d (SOUTH_EAST w) =  int  ->  int  
+
 Pattern Stub
 Pattern Stub 2
 Per World Pattern Stub
