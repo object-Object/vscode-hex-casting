@@ -13,3 +13,7 @@ vsc-extension-quickstart.md
 out/
 esbuild.js
 node_modules/
+images/*.gif
+publish.ps1
+.eslint.json
+.prettierignore
