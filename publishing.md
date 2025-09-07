@@ -11,7 +11,7 @@
    - Environment: `azure`
 3. In Azure DevOps, [add the managed identity to the organization](https://learn.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/service-principal-managed-identity?view=azure-devops#step-2-add-the-identity-to-azure-devops).
 4. In the GitHub repository, [create an environment](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments) called `azure`.
-5. Add the following secrets to the `azure` environment:
+5. Add the following variables to the `azure` environment:
    - `AZURE_CLIENT_ID`: managed identity client ID
    - `AZURE_SUBSCRIPTION_ID`: managed identity subscription ID
    - `AZURE_TENANT_ID`: [Microsoft Entra tenant ID](https://learn.microsoft.com/en-us/azure/active-directory-b2c/tenant-management-read-tenant-name)
