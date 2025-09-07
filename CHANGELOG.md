@@ -2,6 +2,35 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.2.4] - 2025-09-07
+
+### Additions
+
+- Added support for the following mods:
+  - Hexodus
+  - Hexstruction
+  - Hextended Staves
+  - Hierophantics
+  - Lapisworks
+  - Lesser Teleport
+  - Scryglass
+  - Slate Works
+  - Special Efhexs
+
+### Mod Updates
+
+- Caduceus: 0.1.1+1.20.1
+- Complex Hex: 0.1.6-beta @ d433a188
+- Ephemera: 0.3.0 @ dd1307b8
+- Hexal: 0.3.0-4 @ 8a61a28e
+- Hexcellular: 1.1.0
+- Hexchanting: 1.1.3
+- Hexical: 2.0.0 @ e3fe377c
+- Hexpose: 1.0.0
+- IoticBlocks: 1.0.1+1.20.1
+- MoreIotas: 0.1.0-6 @ 292d76df
+- Oneironaut: 0.5.0 @ 3c212caf
+
 ## [0.2.3] - 2025-08-22
 
 ### Additions
