@@ -41,6 +41,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
+          cache: yarn
 
       - name: Install vsce
         run: yarn global add @vscode/vsce
