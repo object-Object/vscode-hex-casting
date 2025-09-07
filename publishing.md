@@ -5,20 +5,20 @@
 1. In Azure, [create a new Entra application / service principal](https://learn.microsoft.com/entra/identity-platform/howto-create-service-principal-portal). Leave the Redirect URI empty.
 2. Assign the Reader role to the application.
    - You may be able to create a custom role with fewer permissions than Reader to limit which resources are visible to the application. I'm not sure what the minimum required permissions are.
-3. [Add a federated credential to the application](https://learn.microsoft.com/en-ca/entra/workload-id/workload-identity-federation-create-trust?pivots=identity-wif-apps-methods-azp#github-actions):
+3. [Add a federated credential to the application](https://learn.microsoft.com/en-ca/entra/workload-id/workload-identity-federation-create-trust#github-actions):
    - Federated credential scenario: GitHub Actions deploying Azure resources
    - Organization: GitHub username (eg. `object-Object`)
    - Repository: GitHub repository name (eg. `vscode-hex-casting`)
    - Entity type: Environment
    - Environment: `azure`
 4. [Create a new client secret](https://learn.microsoft.com/en-ca/entra/identity-platform/howto-create-service-principal-portal#option-3-create-a-new-client-secret) for the application.
-5. Using the [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli), run the following commands to [get the application's user ID](https://learn.microsoft.com/en-us/azure/devops/extend/publish/command-line?toc=%2Fazure%2Fdevops%2Fmarketplace-extensibility%2Ftoc.json&view=azure-devops&tabs=bash#publish-with-a-microsoft-entra-token-as-a-service-principal):
+5. Using the [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli), run the following commands to [get the application's user ID](https://learn.microsoft.com/en-us/azure/devops/extend/publish/command-line#publish-with-a-microsoft-entra-token-as-a-service-principal):
    ```sh
    az login --service-principal --username APPLICATION_ID --password CLIENT_SECRET --tenant TENANT_ID
    az rest -u https://app.vssps.visualstudio.com/_apis/profile/profiles/me --resource 499b84ac-1321-427f-aa17-267ca6975798 --query id --output tsv
    az logout
    ```
-6. [Add the application to your Marketplace publisher](https://learn.microsoft.com/en-us/visualstudio/extensibility/walkthrough-publishing-a-visual-studio-extension?view=vs-2022#add-additional-users-to-manage-your-publisher-account).
+6. [Add the application to your Marketplace publisher](https://learn.microsoft.com/en-us/visualstudio/extensibility/walkthrough-publishing-a-visual-studio-extension#add-additional-users-to-manage-your-publisher-account).
    - User ID: The UUID found in the previous step
    - Role: Contributor (Creator is not sufficient)
 7. Delete the client secret (not the federated credential).
