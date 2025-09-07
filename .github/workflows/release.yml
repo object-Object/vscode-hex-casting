@@ -1,4 +1,4 @@
-name: Release
+name: Publish extension to VSCode Extension Marketplace
 run-name: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
 
 on:
@@ -10,25 +10,68 @@ on:
       tag:
         type: string
         required: true
-        description: Tag
-      wait:
+        description: Tag to publish from
+      dry-run:
         type: boolean
         default: false
-        description: Wait for VS Marketplace validation
+        description: Perform a dry run
 
 env:
   TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
 
+permissions:
+  contents: read
+
 jobs:
-  release:
+  build:
+    uses: ./.github/workflows/build.yml
+
+  marketplace:
+    needs: build
     runs-on: ubuntu-latest
+    environment:
+      name: azure
+      url: https://marketplace.visualstudio.com/items?itemName=object-Object.hex-casting
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
-      - if: github.event_name == 'push' || inputs.wait
-        name: Wait for VS Marketplace validation
-        run: sleep 5m
-        shell: bash
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install vsce
+        run: yarn global add @vscode/vsce
+
+      - name: Download extension package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: extension
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+
+      - name: Verify PAT
+        run: vsce verify-pat --azure-credential object-Object
+
+      - name: Publish extension
+        if: inputs.dry-run == false
+        run: vsce publish --azure-credential --packagePath ${{ needs.build.outputs.package-path }}
+
+  github:
+    needs: marketplace
+    if: inputs.dry-run == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Create GitHub release
         uses: elgohr/Github-Release-Action@v5
