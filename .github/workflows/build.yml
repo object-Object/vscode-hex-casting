@@ -14,11 +14,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      # TODO: detect generated path instead of hardcoding?
-      PACKAGE_PATH: hex-casting.vsix
     outputs:
-      package-path: ${{ env.PACKAGE_PATH }}
+      package-path: ${{ steps.build.outputs.package-path }}
     steps:
       - uses: actions/checkout@v4
 
@@ -33,11 +30,19 @@ jobs:
           yarn global add @vscode/vsce
 
       - name: Build extension
-        run: vsce package --out ${{ env.PACKAGE_PATH }}
+        id: build
+        run: |
+          vsce package
+          shopt -s nullglob
+          files=(*.vsix)
+          if [[ -z "${files[0]}" ]]; then
+              exit 1
+          fi
+          echo "package-path=${files[0]}" >> "$GITHUB_OUTPUT"
 
       - name: Upload extension package
         uses: actions/upload-artifact@v4
         with:
           name: extension
-          path: ${{ env.PACKAGE_PATH }}
+          path: ${{ steps.build.outputs.package-path }}
           if-no-files-found: error
