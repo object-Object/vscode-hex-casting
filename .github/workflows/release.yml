@@ -57,7 +57,6 @@ jobs:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          auth-type: IDENTITY
 
       - name: Verify PAT
         run: vsce verify-pat --azure-credential object-Object
