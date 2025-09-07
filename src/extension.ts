@@ -48,6 +48,9 @@ function makeDefaultRegistry(registry: HexBugRegistry): PatternLookup<RegistryPa
     const result: PatternLookup<RegistryPatternInfo> = {};
 
     for (const info of Object.values(registry.patterns)) {
+        if (info.display_as != null) {
+            continue;
+        }
         const [modid, idPath] = info.id.split(":");
         result[info.name] = {
             ...info,
@@ -204,6 +207,7 @@ async function updateConfiguration() {
     );
 
     // remove operators from disabled mods, then remove entries with no operators left
+    // NOTE: this also removes undocumented patterns, eg. ephemera:no
     for (const info of Object.values(defaultRegistry)) {
         info.operators = info.operators.filter(({ mod_id }) => !disabledModIds.has(mod_id)) as [
             PatternOperator,

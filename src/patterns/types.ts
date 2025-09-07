@@ -32,6 +32,7 @@ export interface ModInfo {
     github_repo: string;
     github_commit: string;
     pattern_count: number;
+    documented_pattern_count: number;
     special_handler_count: number;
     first_party_operator_count: number;
     third_party_operator_count: number;
@@ -43,8 +44,9 @@ export interface HexBugPatternInfo {
     direction: Direction;
     signature: string;
     is_per_world: boolean;
-    // there must be at least one operator
-    operators: [PatternOperator, ...PatternOperator[]];
+    display_only: boolean;
+    display_as: string | null;
+    operators: PatternOperator[];
 }
 
 export interface PatternOperator {
@@ -72,7 +74,7 @@ export interface RegistryPatternInfo {
     direction: Direction | null;
     signature: string | null;
     isPerWorld: boolean;
-    operators: [PatternOperator, ...PatternOperator[]];
+    operators: PatternOperator[];
 }
 
 export const MACRO_MOD_ID = "macro";
