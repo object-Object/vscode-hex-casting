@@ -18,7 +18,7 @@
    az rest -u https://app.vssps.visualstudio.com/_apis/profile/profiles/me --resource 499b84ac-1321-427f-aa17-267ca6975798 --query id --output tsv
    az logout
    ```
-6. [Add the application to your Marketplace publisher](https://learn.microsoft.com/en-us/visualstudio/extensibility/walkthrough-publishing-a-visual-studio-extension#add-additional-users-to-manage-your-publisher-account).
+6. [Add the application to your Marketplace publisher as a member](https://learn.microsoft.com/en-us/visualstudio/extensibility/walkthrough-publishing-a-visual-studio-extension#add-additional-users-to-manage-your-publisher-account).
    - User ID: The UUID found in the previous step
    - Role: Contributor (Creator is not sufficient)
 7. Delete the client secret (not the federated credential).
