@@ -2,6 +2,16 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.2.5] - 2025-09-21
+
+### Mod Updates
+
+- HexDebug: 0.4.0+1.20.1
+- IoticBlocks: 1.0.2+1.20.1
+- Lapisworks: 1.5.4.5
+- Lesser Teleport: 1.2.1
+- MoreIotas: 0.1.0-7 @ b87cfd64
+
 ## [0.2.4] - 2025-09-07
 
 ### Additions
