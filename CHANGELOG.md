@@ -2,6 +2,19 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.2.6] - 2025-09-22
+
+### Additions
+
+- Added support for the following mods:
+  - HexFlow
+  - HexOverpowered
+  - HexParse
+
+### Fixes
+
+- Fixed missing translations for Lapisworks' per-world shape patterns.
+
 ## [0.2.5] - 2025-09-21
 
 ### Mod Updates
