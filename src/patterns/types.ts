@@ -11,9 +11,22 @@ export interface HexBugRegistry {
     mods: { [id: string]: ModInfo };
     patterns: { [id: string]: HexBugPatternInfo };
     special_handlers: { [id: string]: SpecialHandlerInfo };
+
+    // probably don't need these
+    categories: any;
+    entries: any;
+    pages: any;
+    recipes: any;
 }
 
 export type Modloader = "Fabric" | "Forge" | "NeoForge" | "Quilt";
+
+export interface SourceInfo {
+    type: "github" | "codeberg";
+    author: string;
+    repo: string;
+    commit: string;
+}
 
 export interface ModInfo {
     // StaticModInfo
@@ -28,14 +41,20 @@ export interface ModInfo {
     // DynamicModInfo
     version: string;
     book_url: string;
-    github_author: string;
-    github_repo: string;
-    github_commit: string;
+    book_title: string;
+    book_description: string;
+    source: SourceInfo;
+
     pattern_count: number;
     documented_pattern_count: number;
     special_handler_count: number;
     first_party_operator_count: number;
     third_party_operator_count: number;
+
+    category_count: number;
+    entry_count: number;
+    linkable_page_count: number;
+    recipe_count: number;
 }
 
 export interface HexBugPatternInfo {

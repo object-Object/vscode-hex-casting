@@ -2,6 +2,26 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.2.7] - 2025-10-11
+
+### Mod Additions
+
+- Hex Trace: 0.1.0+1.20.1
+- Hex-Ars Linker: 0.9.2.4
+- Hexic: 1.3.4
+- mediatransport: 1.0.1+1.20.1
+
+### Mod Updates
+
+- Hexal: 0.3.0-4 @ 16425bdc
+- HexDebug: 0.7.0+1.20.1
+- HexFlow: 0.3.1.1
+- Hexical: 2.0.0 @ e0d7ef97
+- HexParse: 1.4.0
+- Hierophantics: 1.3.3
+- Lapisworks: 1.5.5
+- MoreIotas: 0.1.1
+
 ## [0.2.6] - 2025-09-22
 
 ### Additions
