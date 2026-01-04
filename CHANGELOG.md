@@ -2,7 +2,42 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.2.8] - 2026-01-04
+
+### Changes
+
+- Updated registry to HexBug 2.7.2.
+
+### Mod Additions
+
+- Hex Ways: 1.0.0
+- Hexic: 1.4.6
+- HexThings: 0.1.5+1.20.1
+- HexxyPlanes: 0.2.1+1.20.1
+- Hyper's Hexcast Addon: 0.1.1
+- Yet Another Hex Addon: 0.2.1
+
+### Mod Updates
+
+- Caduceus: 0.2.0+1.20.1
+- Dynamic Trees - Hexcasting: 1.0.2
+- Hex Casting: 0.11.3
+- Hexal: 0.3.1
+- Hexchanting: 1.1.6
+- HexDebug: 0.8.0+1.20.1
+- HexFlow: 0.3.3
+- HexOverpowered: 0.10.1
+- HexParse: 1.6.0
+- Hexstruction: 1.3.1+1.20.1
+- Hierophantics: 1.3.4
+- Lapisworks: 1.5.7
+- mediatransport: 1.1.1+1.20.1
+
 ## [0.2.7] - 2025-10-11
+
+### Changes
+
+- Updated registry to HexBug 2.2.0.
 
 ### Mod Additions
 

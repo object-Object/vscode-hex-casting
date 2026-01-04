@@ -17,6 +17,9 @@ export interface HexBugRegistry {
     entries: any;
     pages: any;
     recipes: any;
+
+    // TODO: switch to using this instead of numbers_2000.json
+    pregenerated_numbers: any;
 }
 
 export type Modloader = "Fabric" | "Forge" | "NeoForge" | "Quilt";
