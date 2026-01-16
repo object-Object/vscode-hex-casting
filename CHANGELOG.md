@@ -2,6 +2,20 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.2.9] - 2026-01-15
+
+### Changes
+
+- Updated registry to HexBug 2.7.4.
+
+### Mod Updates
+
+- Caduceus: 0.2.1+1.20.1
+- HexOverpowered: 0.11.0
+- Hex Ways: 1.0.1
+- Hierophantics: 1.3.5
+- Lesser Teleport: 1.2.4
+
 ## [0.2.8] - 2026-01-04
 
 ### Changes
