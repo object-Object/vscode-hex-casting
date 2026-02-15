@@ -2,13 +2,32 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.2.10] - 2026-02-15
+
+### Changes
+
+- Updated registry to HexBug 2.8.0.
+
+### Mods Added
+
+- Hexxy Skies: 2.0.2
+
+### Mods Updated
+
+- Hexchanting: 1.1.7
+- HexFlow: 0.4.1
+- HexOverpowered: 0.11.4
+- HexParse: 1.8.1
+- HexThings: 0.1.6.1+1.20.1
+- Slate Works: 1.2.2
+
 ## [0.2.9] - 2026-01-15
 
 ### Changes
 
 - Updated registry to HexBug 2.7.4.
 
-### Mod Updates
+### Mods Updated
 
 - Caduceus: 0.2.1+1.20.1
 - HexOverpowered: 0.11.0
@@ -22,7 +41,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 
 - Updated registry to HexBug 2.7.2.
 
-### Mod Additions
+### Mods Added
 
 - Hex Ways: 1.0.0
 - Hexic: 1.4.6
@@ -31,7 +50,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 - Hyper's Hexcast Addon: 0.1.1
 - Yet Another Hex Addon: 0.2.1
 
-### Mod Updates
+### Mods Updated
 
 - Caduceus: 0.2.0+1.20.1
 - Dynamic Trees - Hexcasting: 1.0.2
@@ -53,14 +72,14 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 
 - Updated registry to HexBug 2.2.0.
 
-### Mod Additions
+### Mods Added
 
 - Hex Trace: 0.1.0+1.20.1
 - Hex-Ars Linker: 0.9.2.4
 - Hexic: 1.3.4
 - mediatransport: 1.0.1+1.20.1
 
-### Mod Updates
+### Mods Updated
 
 - Hexal: 0.3.0-4 @ 16425bdc
 - HexDebug: 0.7.0+1.20.1
@@ -86,7 +105,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
 
 ## [0.2.5] - 2025-09-21
 
-### Mod Updates
+### Mods Updated
 
 - HexDebug: 0.4.0+1.20.1
 - IoticBlocks: 1.0.2+1.20.1
@@ -109,7 +128,7 @@ All notable changes to the "hex-casting" extension will be documented in this fi
   - Slate Works
   - Special Efhexs
 
-### Mod Updates
+### Mods Updated
 
 - Caduceus: 0.1.1+1.20.1
 - Complex Hex: 0.1.6-beta @ d433a188
@@ -226,7 +245,7 @@ vscode-hex-casting now supports Hex Casting 0.11.2 for Minecraft 1.20.1! This is
 - Macros and special handlers (eg. Bookkeeper's Gambit, Numerical Reflection) are now rendered on hover when possible.
 - Removed the angle signature from the hover info for great spells.
 
-### Mod Updates
+### Mods Updated
 
 - Hexbound: 0.1.4
 - HexDebug: 0.2.2
@@ -268,13 +287,13 @@ vscode-hex-casting now supports Hex Casting 0.11.2 for Minecraft 1.20.1! This is
 
 ## [0.1.30] - 2024-01-06
 
-### Mod Updates
+### Mods Updated
 
 - Oneironaut: 0.2.1
 
 ## [0.1.29] - 2023-12-27
 
-### Mod Updates
+### Mods Updated
 
 - Hex Gloop: 0.2.1 (unreleased)
 - Oneironaut: 0.1.2
@@ -304,7 +323,7 @@ vscode-hex-casting now supports Hex Casting 0.11.2 for Minecraft 1.20.1! This is
 
 ## [0.1.25] - 2023-08-14
 
-### Mod Updates
+### Mods Updated
 
 - Hexal: 0.2.18
 
@@ -328,14 +347,14 @@ Version bump to update the README and fix an incorrect date in the changelog. Oo
 
 ## [0.1.22] - 2023-06-28
 
-### Mod Updates
+### Mods Updated
 
 - Hexal: 0.2.16
 - HexKinetics: 0.7.2
 
 ## [0.1.21] - 2023-06-04
 
-### Mod Updates
+### Mods Updated
 
 - HexKinetics: 0.7.1
 
@@ -345,7 +364,7 @@ Version bump to update the README and fix an incorrect date in the changelog. Oo
 
 - Block comments are now collapsible (#5)
 
-### Mod Updates
+### Mods Updated
 
 - Hexal: 0.2.15
 - HexKinetics: 0.7.0
@@ -353,13 +372,13 @@ Version bump to update the README and fix an incorrect date in the changelog. Oo
 
 ## [0.1.19] - 2023-05-21
 
-### Mod Updates
+### Mods Updated
 
 - HexKinetics: 0.6.1
 
 ## [0.1.18] - 2023-05-18
 
-### Mod Updates
+### Mods Updated
 
 - HexKinetics: 0.6.0
 
@@ -392,7 +411,7 @@ Version bump to update the README and fix an incorrect date in the changelog. Oo
 
 - Update pattern overlap rendering
 
-### Mod Updates
+### Mods Updated
 
 - HexTweaks: 3.2.1
 
@@ -402,19 +421,19 @@ Version bump to update the README and fix an incorrect date in the changelog. Oo
 
 - Allow using the `s` angle in macro patterns
 
-### Mod Updates
+### Mods Updated
 
 - HexTweaks: 3.0.0
 
 ## [0.1.13] - 2023-04-27
 
-### Mod Updates
+### Mods Updated
 
 - MoreIotas: 0.0.4
 
 ## [0.1.12] - 2023-04-21
 
-### Mod Updates
+### Mods Updated
 
 - HexTweaks: 2.2.0
 
@@ -426,19 +445,19 @@ Version bump to update the README and fix an incorrect date in the changelog. Oo
 
 ## [0.1.10] - 2023-04-15
 
-### Mod Updates
+### Mods Updated
 
 - Hexal: 0.2.14
 
 ## [0.1.9] - 2023-04-13
 
-### Mod Updates
+### Mods Updated
 
 - Hexbound: 0.1.3
 
 ## [0.1.8] - 2023-04-02
 
-### Mod Updates
+### Mods Updated
 
 - Hexal: 0.2.13
 
@@ -454,23 +473,23 @@ Version bump to update the README and fix an incorrect date in the changelog. Oo
 
 ## [0.1.6] - 2023-03-22
 
-### Mod Updates
+### Mods Updated
 
 - Hexal: 0.2.11
 
 ### Notes
 
-- Retroactively update changelog format: add dedicated section for mod updates
+- Retroactively update changelog format: add dedicated section for Mods Updated
 
 ## [0.1.5] - 2023-03-03
 
-### Mod Updates
+### Mods Updated
 
 - Hexbound: 0.1.1+1.19.2
 
 ## [0.1.4] - 2023-02-16
 
-### Mod Updates
+### Mods Updated
 
 - Hexal: 0.2.7
 - Hexbound: 0.1.0+1.19.2
