@@ -83,7 +83,7 @@ export interface SpecialHandlerInfo {
     id: string;
     raw_name: string;
     base_name: string;
-    operator: PatternOperator;
+    operator: PatternOperator | null;
 }
 
 // i hate it here

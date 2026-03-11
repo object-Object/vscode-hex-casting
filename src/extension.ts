@@ -71,7 +71,7 @@ function makeDefaultRegistry(registry: HexBugRegistry): PatternLookup<RegistryPa
             direction: null,
             signature: null,
             isPerWorld: false,
-            operators: [operator],
+            operators: operator ? [operator] : [],
         };
     }
 
@@ -324,7 +324,7 @@ async function makeDocumentation(
 }
 
 function getModName(id: string): string {
-    return id === MACRO_MOD_ID ? "macro" : currentRegistry.mods[id]?.name ?? id;
+    return id === MACRO_MOD_ID ? "macro" : (currentRegistry.mods[id]?.name ?? id);
 }
 
 function maybeLink(text: string, link: string | null): string {
@@ -1584,7 +1584,7 @@ async function copySelectionAsListCommand(editor: vscode.TextEditor): Promise<vo
     for (const { id, translation, num, param, ...rest } of patterns) {
         let direction: string | null;
         let signature: string | null;
-        ({ direction, signature } = num != undefined ? NUMBER_LITERALS.get(num) ?? rest : rest);
+        ({ direction, signature } = num != undefined ? (NUMBER_LITERALS.get(num) ?? rest) : rest);
 
         if (id != null) {
             list.push(param ? `${id} ${param}` : id);

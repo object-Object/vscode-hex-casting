@@ -2,6 +2,25 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.2.11] - 2026-03-11
+
+### Changes
+
+- Updated registry to HexBug 2.8.2.
+
+### Mods Added
+
+- Hextra Patterns: 1.1.2
+- Moves the Mind: 1.1.0
+
+### Mods Updated
+
+- HexParse: 1.9.0
+- HexThings: 0.1.7+1.20.1
+- Hierophantics: 1.3.7
+- Lapisworks: 1.5.8
+- Yet Another Hex Addon: 0.3.0
+
 ## [0.2.10] - 2026-02-15
 
 ### Changes
