@@ -2,6 +2,23 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.2.12] - 2026-03-26
+
+### Changes
+
+- Updated registry to HexBug 2.8.3.
+
+### Mods Added
+
+- Focalworks: 1.1.0
+- HexAutomata: 0.2.0
+- Hex Keys: 0.1.4
+
+### Mods Updated
+
+- Hextra Patterns: 1.4.0
+- Slate Works: 2.0.0
+
 ## [0.2.11] - 2026-03-11
 
 ### Changes
