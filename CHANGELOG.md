@@ -2,6 +2,27 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.2.13] - 2026-05-02
+
+### Changes
+
+- Updated registry to HexBug 2.8.5.
+
+### Mods Updated
+
+- Hex-Ars Linker: 0.9.5.1
+- HexAutomata: 0.3.4
+- Hexcellular: 1.1.1
+- HexFlow: 0.5.1.1
+- Hex Keys: 0.1.6
+- HexOverpowered: 0.11.6
+- HexParse: 1.10.2.2
+- Hextra Patterns: 1.5.0
+- HexxyPlanes: 0.2.3+1.20.1
+- Lapisworks: 1.5.8.2
+- Slate Works: 2.2.0
+- Yet Another Hex Addon: 0.3.1
+
 ## [0.2.12] - 2026-03-26
 
 ### Changes
