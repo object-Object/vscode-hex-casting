@@ -2,6 +2,22 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.2.14] - 2026-06-17
+
+### Changes
+
+- Updated registry to HexBug 2.10.1.
+
+### Mods Updated
+
+- HexAutomata: 0.3.5
+- Hexchanting: 1.2.0
+- Hexic: 2.0.0
+- HexOverpowered: 0.11.7
+- HexParse: 1.11.1
+- Lapisworks: 1.5.8.4
+- MoreIotas: 0.1.2
+
 ## [0.2.13] - 2026-05-02
 
 ### Changes
