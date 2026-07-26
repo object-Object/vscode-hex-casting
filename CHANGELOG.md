@@ -2,6 +2,25 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.2.15] - 2026-07-25
+
+### Changes
+
+- Updated registry to HexBug 2.10.2.
+
+### Mods Added
+
+- HexIntent: 2.1.7
+- Hexssence: 0.1.1+1.20.1
+
+### Mods Updated
+
+- Caduceus: 0.3.0+1.20.1
+- HexDebug: 0.8.1+1.20.1
+- HexParse: 1.11.2
+- Hextra Patterns: 1.8.0
+- Yet Another Hex Addon: 0.4.0
+
 ## [0.2.14] - 2026-06-17
 
 ### Changes
