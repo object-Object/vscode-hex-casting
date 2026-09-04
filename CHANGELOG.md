@@ -2,6 +2,24 @@
 
 All notable changes to the "hex-casting" extension will be documented in this file.
 
+## [0.2.16] - 2026-09-04
+
+### Changes
+
+- Updated registry to HexBug 2.11.1.
+
+### Mods Updated
+
+- Hex Casting: 0.11.4
+- HexFlow: 0.6.0
+- Hexic: 2.1.1
+- HexIntent: 2.2.2
+- HexOverpowered: 0.12.1
+- Hexssence: 0.1.3+1.20.1
+- HexThings: 0.1.8+1.20.1
+- Hextra Patterns: 1.9.1+1.20.1
+- Hierophantics: 1.4.0
+
 ## [0.2.15] - 2026-07-25
 
 ### Changes
